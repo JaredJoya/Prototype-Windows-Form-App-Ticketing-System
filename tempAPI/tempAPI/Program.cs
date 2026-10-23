@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Google.Cloud.Firestore;
@@ -16,6 +17,25 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 app.Urls.Add("http://0.0.0.0:5075");
+
+var credentialsPath = Path.Combine(
+    AppContext.BaseDirectory,
+    "firestore-service-account.json"
+);
+
+if (!File.Exists(credentialsPath))
+{
+    throw new FileNotFoundException(
+        "Firestore credentials file was not found.",
+        credentialsPath
+    );
+}
+
+Environment.SetEnvironmentVariable(
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    credentialsPath,
+    EnvironmentVariableTarget.Process
+);
 
 var firestore = await FirestoreDb.CreateAsync("tempdatabase-23468");
 var philippinesTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "Singapore Standard Time" : "Asia/Manila");
