@@ -26,6 +26,27 @@ namespace tempProj
 
         private async void Form1_Load(object sender, EventArgs e)
         {
+            DialogResult choice = MessageBox.Show("Choose which API server this computer should use:\n\n"+
+                "Yes = Network 1 (192.168.1.*)\n\n"+
+                "No = Network 2 (192.168.2.*)\n\n"+
+                "Cancel = Exit the application", "Select Network",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question);
+
+            if (choice == DialogResult.Yes)
+            {
+                ApiService.SetBaseUrl("http://192.168.1.101:5075");
+            }
+            else if (choice == DialogResult.No)
+            {
+                ApiService.SetBaseUrl("http://192.168.2.55:5075");
+            }
+            else
+            {
+                Application.Exit();
+                return;
+            }
+             
             ticketDataGrid.AutoGenerateColumns = true;
             ticketDataGrid.ReadOnly = true;
             ticketDataGrid.AllowUserToAddRows = false;

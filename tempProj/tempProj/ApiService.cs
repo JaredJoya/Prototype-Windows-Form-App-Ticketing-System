@@ -7,13 +7,20 @@ using System.Net.Http;
 using System.Text.Json;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
+using System.Buffers.Text;
 
 namespace tempProj
 {
     public class ApiService
     {
         private static readonly HttpClient httpClient = new HttpClient();
-        private const string BaseUrl = "http://192.168.2.55:5075";
+        private static string baseUrl = "http://192.168.2.55:5075";
+        public static string BaseUrl => baseUrl;
+        public static void SetBaseUrl(string url)
+        {
+            baseUrl = url.TrimEnd('/');
+        }
+
         public async Task<List<Ticket>> GetTicketsAsync()
         {
             var response = await httpClient.GetAsync($"{BaseUrl}/tickets");
