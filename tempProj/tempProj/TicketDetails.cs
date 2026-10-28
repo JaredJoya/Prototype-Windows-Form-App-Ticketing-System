@@ -37,19 +37,29 @@ namespace tempProj
                 }
 
                 txtbox_title.Text = ticket.Title;
-                txtbox_status.Text = ticket.Status;
+                cmbStatus.SelectedItem = ticket.Status;
                 rtxtbox_description.Text = ticket.Description;
 
-                canModifyTicket = string.Equals(ticket.CreatedBy,
-                    Environment.UserName,
+                bool isCreator = string.Equals(ticket.CreatedBy, Environment.UserName,
                     StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(ticket.ComputerName,
-                    Environment.MachineName,
+                    string.Equals(ticket.ComputerName, Environment.MachineName,
                     StringComparison.OrdinalIgnoreCase);
 
+                bool isAdmin = false;
+                try
+                {
+                    isAdmin = await api.IsAdminAsync();
+                }
+                catch
+                {
+
+                }
+
+                canModifyTicket = isAdmin || isCreator;
+
                 btnModify.Enabled = canModifyTicket;
-                btnUpdate.Enabled = canModifyTicket;
                 btnDelete.Enabled = canModifyTicket;
+                btnUpdate.Enabled = false;
             }
             catch (Exception ex)
             {
@@ -78,24 +88,42 @@ namespace tempProj
         private void btnModify_Click(object sender, EventArgs e)
         {
             txtbox_title.ReadOnly = false;
-            txtbox_status.ReadOnly = false;
             rtxtbox_description.ReadOnly = false;
+            cmbStatus.Enabled = true;
+            btnUpdate.Enabled = true;
         }
 
         private async void btnUpdate_Click(object sender, EventArgs e)
         {
             string tempTitle = Convert.ToString(txtbox_title.Text);
-            string tempStatus = Convert.ToString(txtbox_status.Text);
+            string tempStatus =  cmbStatus.SelectedItem.ToString();
             string Description = Convert.ToString(rtxtbox_description.Text);
+
+            if (tempStatus == "Complete")
+            {
+                DialogResult result = MessageBox.Show("Are you sure you want to mark this ticket as Complete?\n\n" +
+                    "Once completed, this ticket will be moved to the " +
+                    "Completed Tickets list and will no longer be editable. \n\n" + 
+                    "Please make sure all work has been finished before continuing.",
+                    "Comfirm Ticket Completion",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning);
+
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
             btnUpdate.Enabled = false;
             try
             {
                 Ticket updatedTicket = new Ticket
                 {
                     Id = ticketId,
-                    Title = txtbox_title.Text,
-                    Description = rtxtbox_description.Text,
-                    Status = txtbox_status.Text,
+                    Title = tempTitle,
+                    Description = Description,
+                    Status = tempStatus,
 
                     CreatedBy = Environment.UserName,
                     ComputerName = Environment.MachineName
@@ -106,7 +134,6 @@ namespace tempProj
                
 
                 txtbox_title.ReadOnly = true;
-                txtbox_status.ReadOnly = true;
                 rtxtbox_description.ReadOnly = true;
 
             } catch (Exception ex) {
@@ -117,7 +144,8 @@ namespace tempProj
             }
             finally
             {
-                btnUpdate.Enabled = true;
+                btnUpdate.Enabled = false;
+                cmbStatus.Enabled = false;
             }
         }
 

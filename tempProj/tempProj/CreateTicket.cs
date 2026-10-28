@@ -33,7 +33,7 @@ namespace tempProj
         private async void btnSubmit_Click(object sender, EventArgs e)
         {
             string tempTitle = Convert.ToString(txtbox_title.Text);
-            string tempStatus = Convert.ToString(txtbox_status.Text);
+            string tempStatus = cmbStatus.SelectedItem.ToString();
             string Description = Convert.ToString(rtxtbox_description.Text);
 
             if (string.IsNullOrWhiteSpace(tempTitle) || 
@@ -75,7 +75,7 @@ namespace tempProj
             } finally { btnSubmit.Enabled = true; }
 
             txtbox_title.Text = "";
-            txtbox_status.Text = "";
+            cmbStatus.Items.Clear();
             rtxtbox_description.Text = "";
 
         }

@@ -21,6 +21,19 @@ namespace tempProj
             baseUrl = url.TrimEnd('/');
         }
 
+        public async Task<bool> IsAdminAsync()
+        {
+            var response = await httpClient.GetAsync($"{BaseUrl}/permissions");
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+            var result = System.Text.Json.JsonSerializer.Deserialize<PermissionsResponse>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            return result?.IsAdmin ?? false;
+        }
+
         public async Task<List<Ticket>> GetTicketsAsync()
         {
             var response = await httpClient.GetAsync($"{BaseUrl}/tickets");
@@ -116,5 +129,10 @@ namespace tempProj
         public string Title { get; set; } = "";
         public string UpdatedAt { get; set; } = "";
 
+    }
+
+    public class PermissionsResponse
+    {
+        public bool IsAdmin {  get; set; }
     }
 }
