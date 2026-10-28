@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Linq;
 using System.Collections.Generic;
 using Google.Cloud.Firestore;
@@ -74,6 +75,30 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+
+var adminIpAddresses = new HashSet<String>(StringComparer.OrdinalIgnoreCase)
+{
+    "192.168.2.55"
+};
+
+bool isAdminClient(HttpContext context)
+{
+    IPAddress? remoteIp = context.Connection.RemoteIpAddress;
+
+    if (remoteIp == null)
+        return false;
+    if (remoteIp.IsIPv4MappedToIPv6)
+        remoteIp = remoteIp.MapToIPv4();
+    return adminIpAddresses.Contains(remoteIp.ToString());
+}
+
+app.MapGet("/permissions", (HttpContext context) =>
+{
+    return Results.Ok(new
+    {
+        IsAdmin = isAdminClient(context)
+    });
+});
 
 app.MapGet("/health", () =>
 {
@@ -196,7 +221,7 @@ app.MapGet("/tickets/{id}", async (string id) =>
     });
 });
 
-app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request) =>
+app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request, HttpContext context) =>
 {
     var doc = firestore.Collection("Tickets").Document(id);
     var snapshot = await doc.GetSnapshotAsync();
@@ -218,7 +243,9 @@ app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request) =>
     bool isOwner = string.Equals(owner, request.CreatedBy, StringComparison.OrdinalIgnoreCase) &&
     string.Equals(ownerComputer, request.ComputerName, StringComparison.OrdinalIgnoreCase);
 
-    if (!isOwner)
+    bool isAdmin = isAdminClient(context);
+
+    if (!isOwner && !isAdmin)
     {
         return Results.Json(new
         {
@@ -238,7 +265,7 @@ app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request) =>
     return Results.Ok(new { Id = id, Message = "Ticket updated succesfully" });
 });
 
-app.MapDelete("/tickets/{id}", async (string id, string createdBy, string computerName) =>
+app.MapDelete("/tickets/{id}", async (string id, string createdBy, string computerName, HttpContext context) =>
 {
     var doc = firestore.Collection("Tickets").Document(id);
     var snapshot = await doc.GetSnapshotAsync();
@@ -260,7 +287,9 @@ app.MapDelete("/tickets/{id}", async (string id, string createdBy, string comput
     bool isOwner = string.Equals(owner, createdBy, StringComparison.OrdinalIgnoreCase) &&
     string.Equals(ownerComputer, computerName, StringComparison.OrdinalIgnoreCase);
 
-    if (!isOwner)
+    bool isAdmin = isAdminClient(context);
+
+    if (!isOwner && !isAdmin)
     {
         return Results.Json(new
         {
