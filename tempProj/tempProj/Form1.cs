@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -22,18 +23,20 @@ namespace tempProj
         private readonly ApiService api = new ApiService();
         private readonly Image urgentIcon = SystemIcons.Warning.ToBitmap();
         private readonly System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer();
+        private readonly Font statusPillFont = new Font("Segoe UI", 8.25F, FontStyle.Bold);
         private bool isLoadingTickets = false;
 
         public Form1()
         {
             InitializeComponent();
+            lblVersion.Text = "Form1 v" + Application.ProductVersion;
         }
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            DialogResult choice = MessageBox.Show("Choose which API server this computer should use:\n\n"+
-                "Yes = Network 1 (192.168.1.*)\n\n"+
-                "No = Network 2 (192.168.2.*)\n\n"+
+            DialogResult choice = MessageBox.Show("Choose which API server this computer should use:\n\n" +
+                "Yes = Network 1 (192.168.1.*)\n\n" +
+                "No = Network 2 (192.168.2.*)\n\n" +
                 "Cancel = Exit the application", "Select Network",
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Question);
@@ -51,7 +54,7 @@ namespace tempProj
                 Application.Exit();
                 return;
             }
-             
+
             ticketDataGrid.AutoGenerateColumns = true;
             ticketDataGrid.ReadOnly = true;
             ticketDataGrid.AllowUserToAddRows = false;
@@ -60,9 +63,9 @@ namespace tempProj
 
             completeTicketDataGrid.AutoGenerateColumns = true;
             completeTicketDataGrid.ReadOnly = true;
-            completeTicketDataGrid.AllowUserToAddRows= false;
+            completeTicketDataGrid.AllowUserToAddRows = false;
             completeTicketDataGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            completeTicketDataGrid.MultiSelect= false;
+            completeTicketDataGrid.MultiSelect = false;
 
             try
             {
@@ -71,12 +74,18 @@ namespace tempProj
             catch (Exception ex)
             {
                 btnReopenTicket.Enabled = false;
-                MessageBox.Show("Unable to verify administrator permissions.\n\n"+
+                MessageBox.Show("Unable to verify administrator permissions.\n\n" +
                     ex.Message,
                     "Permission Check Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
             }
+
+            // The new design shows "Sort by Descending" selected by default.
+            // Detach the handler so selecting it here does not trigger an extra reload.
+            rbtnDescending.CheckedChanged -= rbtnDescending_CheckedChanged;
+            rbtnDescending.Checked = true;
+            rbtnDescending.CheckedChanged += rbtnDescending_CheckedChanged;
 
             await LoadTicketsAsync();
             refreshTimer.Interval = 300000;
@@ -117,12 +126,19 @@ namespace tempProj
 
                 ticketDataGrid.DataSource = null;
                 ticketDataGrid.DataSource = activeTickets;
+                ApplyColumnSizing(ticketDataGrid);
                 ApplyUrgentTicketStyling();
 
                 completeTicketDataGrid.DataSource = null;
                 completeTicketDataGrid.DataSource = completedTickets;
+                ApplyColumnSizing(completeTicketDataGrid);
+
+                UpdateSummary(activeTickets.Count, completedTickets.Count);
+                SetConnectionState(true);
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
+                SetConnectionState(false);
                 if (showErrors)
                 {
                     MessageBox.Show("Failed to load tickets: " + ex.Message,
@@ -134,6 +150,147 @@ namespace tempProj
             finally { isLoadingTickets = false; }
         }
 
+        // ---------- New design helpers ----------
+
+        private void UpdateSummary(int active, int completed)
+        {
+            pillActiveCount.Text = active == 1 ? "1 Item" : active + " Items";
+            pillCompletedCount.Text = completed == 1 ? "1 Item" : completed + " Items";
+            lblCounts.Text = "•   Active: " + active + "   •   Completed: " + completed;
+        }
+
+        private void SetConnectionState(bool online)
+        {
+            Color color = online ? Color.FromArgb(16, 185, 129) : Color.FromArgb(220, 38, 38);
+            lblConnDot.ForeColor = color;
+            lblSystemDot.ForeColor = color;
+            lblConnText.Text = online ? "Connected" : "Disconnected";
+            lblSystemText.Text = online ? "System Online" : "System Offline";
+        }
+
+        private static void ApplyColumnSizing(DataGridView grid)
+        {
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+
+            foreach (DataGridViewColumn column in grid.Columns)
+            {
+                // Extra right padding on Status leaves room for the badge.
+                if (string.Equals(column.Name, "Status", StringComparison.OrdinalIgnoreCase))
+                {
+                    column.DefaultCellStyle.Padding = new Padding(8, 0, 36, 0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shared CellPainting handler for both grids: upper-case column headers
+        /// and "pill" style badges in the Status column.
+        /// </summary>
+        private void Grid_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
+        {
+            DataGridView grid = (DataGridView)sender;
+
+            if (e.ColumnIndex < 0)
+            {
+                return;
+            }
+
+            if (e.RowIndex == -1)
+            {
+                e.Paint(e.ClipBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+
+                string header = (Convert.ToString(e.FormattedValue) ?? "").ToUpperInvariant();
+                Rectangle textBounds = Rectangle.FromLTRB(
+                    e.CellBounds.Left + e.CellStyle.Padding.Left,
+                    e.CellBounds.Top,
+                    e.CellBounds.Right - 4,
+                    e.CellBounds.Bottom);
+
+                TextRenderer.DrawText(e.Graphics, header, e.CellStyle.Font, textBounds,
+                    e.CellStyle.ForeColor,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+
+                e.Handled = true;
+                return;
+            }
+
+            if (e.RowIndex < 0 ||
+                !string.Equals(grid.Columns[e.ColumnIndex].Name, "Status", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // Paint everything (selection colour, borders) except the plain text.
+            e.Paint(e.ClipBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
+
+            string status = (Convert.ToString(e.FormattedValue) ?? "").Trim();
+            if (status.Length == 0)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            Color back, border, fore;
+            if (string.Equals(status, "Complete", StringComparison.OrdinalIgnoreCase))
+            {
+                back = Color.FromArgb(209, 250, 229);
+                border = Color.FromArgb(110, 231, 183);
+                fore = Color.FromArgb(4, 120, 87);
+            }
+            else if (string.Equals(status, "In Progress", StringComparison.OrdinalIgnoreCase))
+            {
+                back = Color.FromArgb(254, 243, 199);
+                border = Color.FromArgb(252, 211, 77);
+                fore = Color.FromArgb(146, 64, 14);
+            }
+            else
+            {
+                back = Color.FromArgb(226, 232, 240);
+                border = Color.FromArgb(203, 213, 225);
+                fore = Color.FromArgb(51, 65, 85);
+            }
+
+            TextFormatFlags flags = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix;
+            Size textSize = TextRenderer.MeasureText(e.Graphics, status, statusPillFont,
+                new Size(int.MaxValue, int.MaxValue), flags);
+
+            int pillHeight = 26;
+            int pillWidth = Math.Min(textSize.Width + 24, e.CellBounds.Width - 12);
+            if (pillWidth < 10)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            Rectangle pill = new Rectangle(
+                e.CellBounds.Left + 8,
+                e.CellBounds.Top + (e.CellBounds.Height - pillHeight) / 2,
+                pillWidth - 1,
+                pillHeight - 1);
+
+            SmoothingMode oldMode = e.Graphics.SmoothingMode;
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (GraphicsPath path = GraphicsHelper.RoundedRect(pill, pill.Height / 2))
+            using (SolidBrush brush = new SolidBrush(back))
+            using (Pen pen = new Pen(border, 1))
+            {
+                e.Graphics.FillPath(brush, path);
+                e.Graphics.DrawPath(pen, path);
+            }
+
+            e.Graphics.SmoothingMode = oldMode;
+
+            TextRenderer.DrawText(e.Graphics, status, statusPillFont,
+                new Rectangle(pill.X, pill.Y, pill.Width + 1, pill.Height + 1), fore,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter |
+                TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+
+            e.Handled = true;
+        }
+
+        // ---------- Existing logic ----------
 
         private async void btnViewDetails_Click(object sender, EventArgs e)
         {
@@ -145,7 +302,7 @@ namespace tempProj
 
             DataGridViewRow selectedRow = ticketDataGrid.SelectedRows[0];
             Ticket selectedTicket = selectedRow.DataBoundItem as Ticket;
-            
+
             if (selectedTicket == null)
             {
                 MessageBox.Show("Unable to retrieve the selected ticket." + "Please refresh the ticket list and try again.");
@@ -206,13 +363,13 @@ namespace tempProj
                     {
                         writer.WriteLine(string.Join(",", columns.Select(column => EscapeCsv(column.HeaderText))));
 
-                        foreach(DataGridViewRow row in rows)
+                        foreach (DataGridViewRow row in rows)
                         {
                             string line = string.Join(",", columns.Select(column => EscapeCsv(Convert.ToString(row.Cells[column.Index].FormattedValue) ?? "")));
                             writer.WriteLine(line);
                         }
                     }
-                    MessageBox.Show($"Successfully exported {rows.Count} completed tickets.\n\n" + 
+                    MessageBox.Show($"Successfully exported {rows.Count} completed tickets.\n\n" +
                         $"Saved to:\n{saveDialog.FileName}",
                         "Export Successful",
                         MessageBoxButtons.OK,
@@ -254,7 +411,9 @@ namespace tempProj
                 DataGridViewImageColumn iconColumn = new DataGridViewImageColumn();
                 iconColumn.Name = "UrgentIconColumn";
                 iconColumn.HeaderText = "";
-                iconColumn.Width = 30;
+                iconColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                iconColumn.Width = 44;
+                iconColumn.MinimumWidth = 44;
                 iconColumn.ImageLayout = DataGridViewImageCellLayout.Zoom;
                 iconColumn.ReadOnly = true;
                 iconColumn.SortMode = DataGridViewColumnSortMode.NotSortable;
@@ -262,6 +421,8 @@ namespace tempProj
                 ticketDataGrid.Columns.Insert(0, iconColumn);
             }
 
+            // In the new design urgent tickets are marked by the warning icon only;
+            // row colours come from the grid styles set in the designer.
             foreach (DataGridViewRow row in ticketDataGrid.Rows)
             {
                 Ticket ticket = row.DataBoundItem as Ticket;
@@ -276,20 +437,6 @@ namespace tempProj
                     StringComparison.OrdinalIgnoreCase) && hasValidDate && DateTime.Now -
                     createdAt >= TimeSpan.FromDays(7);
                 row.Cells["UrgentIconColumn"].Value = isUrgent ? urgentIcon : null;
-                if (isUrgent)
-                {
-                    row.DefaultCellStyle.BackColor = Color.MistyRose;
-                    row.DefaultCellStyle.ForeColor = Color.DarkRed;
-                    row.DefaultCellStyle.SelectionBackColor = Color.Firebrick;
-                    row.DefaultCellStyle.SelectionForeColor = Color.White;
-                }
-                else
-                {
-                    row.DefaultCellStyle.BackColor = Color.Empty;
-                    row.DefaultCellStyle.ForeColor = Color.Empty;
-                    row.DefaultCellStyle.SelectionBackColor = Color.Empty;
-                    row.DefaultCellStyle.SelectionForeColor = Color.Empty;
-                }
             }
         }
         private async void btnReopenTicket_Click(object sender, EventArgs e)
@@ -302,7 +449,7 @@ namespace tempProj
 
             DataGridViewRow selectedRow = completeTicketDataGrid.SelectedRows[0];
             Ticket selectedTicket = selectedRow.DataBoundItem as Ticket;
-            
+
             if (selectedTicket == null)
             {
                 MessageBox.Show("Unable to retrieve the selected ticket." + "Please refresh the ticket list and try again.");

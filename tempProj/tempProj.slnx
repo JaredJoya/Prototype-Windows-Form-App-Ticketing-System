@@ -1,3 +1,6 @@
 <Solution>
+  <Folder Name="/Resources/">
+    <File Path="FB_IMG_1793062386326.ico" />
+  </Folder>
   <Project Path="tempProj/tempProj.csproj" Id="0d7667fd-b6f4-4ef1-b76a-76d37b656c77" />
 </Solution>
