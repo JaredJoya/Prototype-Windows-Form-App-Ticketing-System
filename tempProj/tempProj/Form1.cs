@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -26,17 +27,59 @@ namespace tempProj
         private readonly Font statusPillFont = new Font("Segoe UI", 8.25F, FontStyle.Bold);
         private bool isLoadingTickets = false;
 
+        private List<Ticket> allTickets = new List<Ticket>();
+        private readonly System.Windows.Forms.Timer searchDebounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+
+        private Font pcNameFont;
+
         public Form1()
         {
             InitializeComponent();
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }   // app icon (Project > Properties > Application > Icon)
             lblVersion.Text = "Form1 v" + Application.ProductVersion;
+            SetPcName(Environment.MachineName);
+
+            searchDebounceTimer.Tick += (s, e) =>
+            {
+                searchDebounceTimer.Stop();
+                ApplyFiltersAndBind();
+            };
+
+
+            // Placeholder text for the search box (the styling itself lives in Form1.Designer.cs).
+            EventHandler setHint = (s, e) => SendMessage(txtsearch.Handle, EM_SETCUEBANNER, (IntPtr)1, "Search tickets...");
+            if (txtsearch.IsHandleCreated) setHint(null, EventArgs.Empty);
+            txtsearch.HandleCreated += setHint;
+        }
+
+        // ---------- Search box helpers (layout/colours are set in Form1.Designer.cs) ----------
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, string lParam);
+        private const int EM_SETCUEBANNER = 0x1501;
+
+        // Clicking anywhere on the card (or its icon) puts the cursor in the search box.
+        private void pnlSearchCard_Click(object sender, EventArgs e)
+        {
+            txtsearch.Focus();
+        }
+
+        // Draws the magnifier icon.
+        private void pnlSearchIcon_Paint(object sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (Pen pen = new Pen(Color.FromArgb(100, 116, 139), 1.8f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                e.Graphics.DrawEllipse(pen, 4, 2, 11, 11);
+                e.Graphics.DrawLine(pen, 13, 12, 18, 17);
+            }
         }
 
         private async void Form1_Load(object sender, EventArgs e)
         {
             DialogResult choice = MessageBox.Show("Choose which API server this computer should use:\n\n" +
                 "Yes = Network 1 (192.168.1.*)\n\n" +
-                "No = Network 2 (192.168.2.*)\n\n" +
+                "No = Network 2 (192.168.0.*)\n\n" +
                 "Cancel = Exit the application", "Select Network",
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Question);
@@ -47,7 +90,7 @@ namespace tempProj
             }
             else if (choice == DialogResult.No)
             {
-                ApiService.SetBaseUrl("http://192.168.2.55:5075");
+                ApiService.SetBaseUrl("http://192.168.0.184:5075");
             }
             else
             {
@@ -96,7 +139,6 @@ namespace tempProj
             refreshTimer.Start();
         }
 
-
         private async Task LoadTicketsAsync(bool showErrors = true)
         {
             if (isLoadingTickets)
@@ -104,36 +146,8 @@ namespace tempProj
             isLoadingTickets = true;
             try
             {
-                List<Ticket> tickets = (await api.GetTicketsAsync())
-                    .OrderBy(t => ParseCreatedAt(t.CreatedAt)).ToList();
-
-                List<Ticket> activeTickets = tickets.Where(t => !string.Equals(t.Status?.Trim(),
-                    "Complete", StringComparison.OrdinalIgnoreCase)).ToList();
-
-                if (rbtnDescending.Checked)
-                {
-                    activeTickets = activeTickets
-                        .OrderByDescending(t => ParseCreatedAt(t.CreatedAt)).ToList();
-                }
-                else
-                {
-                    activeTickets = activeTickets
-                        .OrderBy(t => ParseCreatedAt(t.CreatedAt)).ToList();
-                }
-
-                List<Ticket> completedTickets = tickets.Where(t => string.Equals(t.Status?.Trim(),
-                    "Complete", StringComparison.OrdinalIgnoreCase)).ToList();
-
-                ticketDataGrid.DataSource = null;
-                ticketDataGrid.DataSource = activeTickets;
-                ApplyColumnSizing(ticketDataGrid);
-                ApplyUrgentTicketStyling();
-
-                completeTicketDataGrid.DataSource = null;
-                completeTicketDataGrid.DataSource = completedTickets;
-                ApplyColumnSizing(completeTicketDataGrid);
-
-                UpdateSummary(activeTickets.Count, completedTickets.Count);
+                allTickets = (await api.GetTicketsAsync()).ToList();
+                ApplyFiltersAndBind();
                 SetConnectionState(true);
             }
             catch (Exception ex)
@@ -143,11 +157,72 @@ namespace tempProj
                 {
                     MessageBox.Show("Failed to load tickets: " + ex.Message,
                         "Ticket Loading Error",
-                         MessageBoxButtons.OK,
-                         MessageBoxIcon.Error);
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
                 }
             }
             finally { isLoadingTickets = false; }
+        }
+
+        private void ApplyFiltersAndBind()
+        {
+            string term = GetSearchTerm();
+
+            IEnumerable<Ticket> source = allTickets;
+            if (term.Length > 0)
+            {
+                source = source.Where(t => TicketMatches(t, term));
+            }
+
+            List<Ticket> filtered = source.ToList();
+
+            List<Ticket> activeTickets = filtered
+                .Where(t => !string.Equals(t.Status?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            activeTickets = rbtnDescending.Checked
+                ? activeTickets.OrderByDescending(t => ParseCreatedAt(t.CreatedAt)).ToList()
+                : activeTickets.OrderBy(t => ParseCreatedAt(t.CreatedAt)).ToList();
+
+            List<Ticket> completedTickets = filtered
+                .Where(t => string.Equals(t.Status?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(t => ParseCreatedAt(t.CreatedAt))
+                .ToList();
+
+            ticketDataGrid.DataSource = null;
+            ticketDataGrid.DataSource = activeTickets;
+            ApplyColumnSizing(ticketDataGrid);
+            ApplyUrgentTicketStyling();
+
+            completeTicketDataGrid.DataSource = null;
+            completeTicketDataGrid.DataSource = completedTickets;
+            ApplyColumnSizing(completeTicketDataGrid);
+
+            UpdateSummary(activeTickets.Count, completedTickets.Count);
+        }
+
+        private string GetSearchTerm()
+        {
+            
+            return txtsearch.Text.Trim();
+        }
+
+        private static bool TicketMatches(Ticket t, string term)
+        {
+            return Contains(t.Id, term)
+                || Contains(t.Title, term)
+                || Contains(t.Description, term)
+                || Contains(t.Status, term)
+                || Contains(t.ComputerName, term)
+                || Contains(t.CreatedBy, term)
+                || Contains(t.CreatedAt, term)
+                || Contains(t.UpdatedAt, term);
+        }
+
+        private static bool Contains(string value, string term)
+        {
+            return !string.IsNullOrEmpty(value) &&
+                   value.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // ---------- New design helpers ----------
@@ -174,6 +249,14 @@ namespace tempProj
 
             foreach (DataGridViewColumn column in grid.Columns)
             {
+                // The requester's email is only used by the API for receipts; keep it out of the
+                // grids (and therefore out of the CSV export, which only writes visible columns).
+                if (string.Equals(column.Name, "ReceiptEmail", StringComparison.OrdinalIgnoreCase))
+                {
+                    column.Visible = false;
+                    continue;
+                }
+
                 // Extra right padding on Status leaves room for the badge.
                 if (string.Equals(column.Name, "Status", StringComparison.OrdinalIgnoreCase))
                 {
@@ -472,7 +555,7 @@ namespace tempProj
         {
             if (rbtnAscending.Checked)
             {
-                await LoadTicketsAsync(false);
+                ApplyFiltersAndBind();
             }
         }
 
@@ -480,7 +563,7 @@ namespace tempProj
         {
             if (rbtnDescending.Checked)
             {
-                await LoadTicketsAsync(false);
+                ApplyFiltersAndBind();
             }
         }
 
@@ -489,6 +572,51 @@ namespace tempProj
             bool validDate = DateTime.TryParseExact(createdAt, "yyyy-MM-dd hh:mm tt",
                 CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate);
             return validDate ? parsedDate : DateTime.MinValue;
+        }
+
+        private void SetPcName(string name)
+        {
+            string text = string.IsNullOrWhiteSpace(name) ? "Unknown PC" : name.Trim();
+            int maxWidth = pcname.Width - 6;
+
+            float size = 10F;
+            Font font = new Font("Segoe UI", size, FontStyle.Bold);
+
+            // Shrink the font (down to 7pt) until the name fits the label width.
+            while (size > 7F && TextRenderer.MeasureText(text, font).Width > maxWidth)
+            {
+                font.Dispose();
+                size -= 0.5F;
+                font = new Font("Segoe UI", size, FontStyle.Bold);
+            }
+
+            Font old = pcNameFont;
+            pcNameFont = font;
+            pcname.Font = font;
+            pcname.Text = text;
+            old?.Dispose();
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            searchDebounceTimer.Stop();
+            searchDebounceTimer.Start();
+        }
+
+       
+        private void txtsearch_KeyPress(object sender, KeyPressEventArgs e)
+        {
+
+        }
+
+        private void pcname_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pnlSidebar_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }

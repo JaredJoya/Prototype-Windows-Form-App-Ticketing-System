@@ -75,14 +75,24 @@ namespace tempProj
                 ticket.CreatedBy,
                 ticket.Description,
                 ticket.Status,
-                ticket.Title
+                ticket.Title,
+                ticket.ReceiptEmail
             };
 
             string json = JsonConvert.SerializeObject(payload);
             using(var content = new StringContent(json, Encoding.UTF8, "application/json"))
             {
                 var response = await httpClient.PostAsync(BaseUrl + "/tickets", content);
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Show the API's own explanation (invalid email, admin email failed, ...).
+                    string body = await response.Content.ReadAsStringAsync();
+                    string message = null;
+                    try { message = (string)Newtonsoft.Json.Linq.JObject.Parse(body)["message"]; } catch { }
+                    throw new Exception(string.IsNullOrWhiteSpace(message)
+                        ? "The server returned " + (int)response.StatusCode + " " + response.ReasonPhrase + "."
+                        : message);
+                }
             }
         }
 
@@ -128,7 +138,7 @@ namespace tempProj
         public string Status { get; set; } = "";
         public string Title { get; set; } = "";
         public string UpdatedAt { get; set; } = "";
-
+        public string ReceiptEmail { get; set; } = "";
     }
 
     public class PermissionsResponse

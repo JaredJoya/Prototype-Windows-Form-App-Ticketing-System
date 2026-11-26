@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace tempProj
@@ -35,6 +35,7 @@ namespace tempProj
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.pnlMain = new System.Windows.Forms.Panel();
             this.tlpCards = new System.Windows.Forms.TableLayoutPanel();
             this.cardActive = new tempProj.RoundedPanel();
@@ -52,12 +53,19 @@ namespace tempProj
             this.lblCompletedTitle = new System.Windows.Forms.Label();
             this.lblCompletedDot = new System.Windows.Forms.Label();
             this.pnlTop = new System.Windows.Forms.Panel();
+            this.pnlSearchCard = new tempProj.RoundedPanel();
+            this.txtsearch = new System.Windows.Forms.TextBox();
+            this.pnlSearchIcon = new System.Windows.Forms.Panel();
             this.pnlSort = new tempProj.RoundedPanel();
             this.rbtnDescending = new System.Windows.Forms.RadioButton();
             this.rbtnAscending = new System.Windows.Forms.RadioButton();
             this.lblSortOptions = new System.Windows.Forms.Label();
             this.pnlSidebar = new System.Windows.Forms.Panel();
-            this.pnlSidebarBorder = new System.Windows.Forms.Panel();
+            this.lblPcCaption = new System.Windows.Forms.Label();
+            this.pnlPcChip = new tempProj.RoundedPanel();
+            this.pcname = new System.Windows.Forms.Label();
+            this.lblPcDot = new System.Windows.Forms.Label();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.pnlSystem = new System.Windows.Forms.Panel();
             this.lblSystemText = new System.Windows.Forms.Label();
             this.lblSystemDot = new System.Windows.Forms.Label();
@@ -68,6 +76,7 @@ namespace tempProj
             this.lblWorkspaceSub = new System.Windows.Forms.Label();
             this.lblWorkspaceTitle = new System.Windows.Forms.Label();
             this.picLogo = new System.Windows.Forms.PictureBox();
+            this.pnlSidebarBorder = new System.Windows.Forms.Panel();
             this.pnlStatusBar = new System.Windows.Forms.Panel();
             this.lblVersion = new System.Windows.Forms.Label();
             this.lblCounts = new System.Windows.Forms.Label();
@@ -83,15 +92,18 @@ namespace tempProj
             ((System.ComponentModel.ISupportInitialize)(this.completeTicketDataGrid)).BeginInit();
             this.pnlCompletedHeader.SuspendLayout();
             this.pnlTop.SuspendLayout();
+            this.pnlSearchCard.SuspendLayout();
             this.pnlSort.SuspendLayout();
             this.pnlSidebar.SuspendLayout();
+            this.pnlPcChip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.pnlSystem.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picLogo)).BeginInit();
             this.pnlStatusBar.SuspendLayout();
             this.SuspendLayout();
-            //
+            // 
             // pnlMain
-            //
+            // 
             this.pnlMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(246)))), ((int)(((byte)(247)))), ((int)(((byte)(251)))));
             this.pnlMain.Controls.Add(this.tlpCards);
             this.pnlMain.Controls.Add(this.pnlTop);
@@ -101,9 +113,9 @@ namespace tempProj
             this.pnlMain.Padding = new System.Windows.Forms.Padding(24, 16, 24, 16);
             this.pnlMain.Size = new System.Drawing.Size(880, 650);
             this.pnlMain.TabIndex = 0;
-            //
+            // 
             // tlpCards
-            //
+            // 
             this.tlpCards.ColumnCount = 1;
             this.tlpCards.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpCards.Controls.Add(this.cardActive, 0, 0);
@@ -116,13 +128,13 @@ namespace tempProj
             this.tlpCards.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 42F));
             this.tlpCards.Size = new System.Drawing.Size(832, 558);
             this.tlpCards.TabIndex = 1;
-            //
+            // 
             // cardActive
-            //
+            // 
             this.cardActive.BackColor = System.Drawing.Color.White;
-            this.cardActive.CornerRadius = 12;
             this.cardActive.Controls.Add(this.ticketDataGrid);
             this.cardActive.Controls.Add(this.pnlActiveHeader);
+            this.cardActive.CornerRadius = 12;
             this.cardActive.Dock = System.Windows.Forms.DockStyle.Fill;
             this.cardActive.Location = new System.Drawing.Point(0, 0);
             this.cardActive.Margin = new System.Windows.Forms.Padding(0, 0, 0, 16);
@@ -130,9 +142,9 @@ namespace tempProj
             this.cardActive.Padding = new System.Windows.Forms.Padding(1, 1, 1, 10);
             this.cardActive.Size = new System.Drawing.Size(832, 307);
             this.cardActive.TabIndex = 0;
-            //
+            // 
             // ticketDataGrid
-            //
+            // 
             this.ticketDataGrid.AllowUserToAddRows = false;
             this.ticketDataGrid.AllowUserToDeleteRows = false;
             this.ticketDataGrid.AllowUserToResizeRows = false;
@@ -143,7 +155,7 @@ namespace tempProj
             this.ticketDataGrid.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
             dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             dataGridViewCellStyle1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             dataGridViewCellStyle1.Padding = new System.Windows.Forms.Padding(8, 0, 28, 0);
             dataGridViewCellStyle1.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
@@ -171,12 +183,12 @@ namespace tempProj
             this.ticketDataGrid.RowHeadersVisible = false;
             this.ticketDataGrid.RowTemplate.Height = 44;
             this.ticketDataGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.ticketDataGrid.Size = new System.Drawing.Size(830, 243);
+            this.ticketDataGrid.Size = new System.Drawing.Size(830, 244);
             this.ticketDataGrid.TabIndex = 1;
             this.ticketDataGrid.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.Grid_CellPainting);
-            //
+            // 
             // pnlActiveHeader
-            //
+            // 
             this.pnlActiveHeader.BackColor = System.Drawing.Color.Transparent;
             this.pnlActiveHeader.Controls.Add(this.lblActiveHint);
             this.pnlActiveHeader.Controls.Add(this.pillActiveCount);
@@ -187,9 +199,9 @@ namespace tempProj
             this.pnlActiveHeader.Name = "pnlActiveHeader";
             this.pnlActiveHeader.Size = new System.Drawing.Size(830, 52);
             this.pnlActiveHeader.TabIndex = 0;
-            //
+            // 
             // lblActiveHint
-            //
+            // 
             this.lblActiveHint.BackColor = System.Drawing.Color.Transparent;
             this.lblActiveHint.Dock = System.Windows.Forms.DockStyle.Right;
             this.lblActiveHint.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -201,9 +213,9 @@ namespace tempProj
             this.lblActiveHint.TabIndex = 3;
             this.lblActiveHint.Text = "Data Grid";
             this.lblActiveHint.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            //
+            // 
             // pillActiveCount
-            //
+            // 
             this.pillActiveCount.AutoSize = true;
             this.pillActiveCount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(254)))), ((int)(((byte)(243)))), ((int)(((byte)(199)))));
             this.pillActiveCount.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(252)))), ((int)(((byte)(211)))), ((int)(((byte)(77)))));
@@ -211,38 +223,38 @@ namespace tempProj
             this.pillActiveCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(146)))), ((int)(((byte)(64)))), ((int)(((byte)(14)))));
             this.pillActiveCount.Location = new System.Drawing.Point(164, 14);
             this.pillActiveCount.Name = "pillActiveCount";
-            this.pillActiveCount.Size = new System.Drawing.Size(66, 23);
+            this.pillActiveCount.Size = new System.Drawing.Size(66, 21);
             this.pillActiveCount.TabIndex = 2;
             this.pillActiveCount.Text = "0 Items";
-            //
+            // 
             // lblActiveTitle
-            //
+            // 
             this.lblActiveTitle.AutoSize = true;
             this.lblActiveTitle.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblActiveTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
             this.lblActiveTitle.Location = new System.Drawing.Point(38, 17);
             this.lblActiveTitle.Name = "lblActiveTitle";
-            this.lblActiveTitle.Size = new System.Drawing.Size(114, 17);
+            this.lblActiveTitle.Size = new System.Drawing.Size(107, 17);
             this.lblActiveTitle.TabIndex = 1;
             this.lblActiveTitle.Text = "ACTIVE TICKETS";
-            //
+            // 
             // lblActiveDot
-            //
+            // 
             this.lblActiveDot.AutoSize = true;
             this.lblActiveDot.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblActiveDot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(158)))), ((int)(((byte)(11)))));
             this.lblActiveDot.Location = new System.Drawing.Point(20, 18);
             this.lblActiveDot.Name = "lblActiveDot";
-            this.lblActiveDot.Size = new System.Drawing.Size(16, 15);
+            this.lblActiveDot.Size = new System.Drawing.Size(14, 15);
             this.lblActiveDot.TabIndex = 0;
             this.lblActiveDot.Text = "●";
-            //
+            // 
             // cardCompleted
-            //
+            // 
             this.cardCompleted.BackColor = System.Drawing.Color.White;
-            this.cardCompleted.CornerRadius = 12;
             this.cardCompleted.Controls.Add(this.completeTicketDataGrid);
             this.cardCompleted.Controls.Add(this.pnlCompletedHeader);
+            this.cardCompleted.CornerRadius = 12;
             this.cardCompleted.Dock = System.Windows.Forms.DockStyle.Fill;
             this.cardCompleted.Location = new System.Drawing.Point(0, 323);
             this.cardCompleted.Margin = new System.Windows.Forms.Padding(0);
@@ -250,9 +262,9 @@ namespace tempProj
             this.cardCompleted.Padding = new System.Windows.Forms.Padding(1, 1, 1, 10);
             this.cardCompleted.Size = new System.Drawing.Size(832, 235);
             this.cardCompleted.TabIndex = 1;
-            //
+            // 
             // completeTicketDataGrid
-            //
+            // 
             this.completeTicketDataGrid.AllowUserToAddRows = false;
             this.completeTicketDataGrid.AllowUserToDeleteRows = false;
             this.completeTicketDataGrid.AllowUserToResizeRows = false;
@@ -263,7 +275,7 @@ namespace tempProj
             this.completeTicketDataGrid.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
             dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
             dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
-            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             dataGridViewCellStyle3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             dataGridViewCellStyle3.Padding = new System.Windows.Forms.Padding(8, 0, 28, 0);
             dataGridViewCellStyle3.SelectionBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
@@ -294,9 +306,9 @@ namespace tempProj
             this.completeTicketDataGrid.Size = new System.Drawing.Size(830, 172);
             this.completeTicketDataGrid.TabIndex = 1;
             this.completeTicketDataGrid.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.Grid_CellPainting);
-            //
+            // 
             // pnlCompletedHeader
-            //
+            // 
             this.pnlCompletedHeader.BackColor = System.Drawing.Color.Transparent;
             this.pnlCompletedHeader.Controls.Add(this.lblCompletedHint);
             this.pnlCompletedHeader.Controls.Add(this.pillCompletedCount);
@@ -307,9 +319,9 @@ namespace tempProj
             this.pnlCompletedHeader.Name = "pnlCompletedHeader";
             this.pnlCompletedHeader.Size = new System.Drawing.Size(830, 52);
             this.pnlCompletedHeader.TabIndex = 0;
-            //
+            // 
             // lblCompletedHint
-            //
+            // 
             this.lblCompletedHint.BackColor = System.Drawing.Color.Transparent;
             this.lblCompletedHint.Dock = System.Windows.Forms.DockStyle.Right;
             this.lblCompletedHint.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -321,9 +333,9 @@ namespace tempProj
             this.lblCompletedHint.TabIndex = 3;
             this.lblCompletedHint.Text = "Resolved Archive";
             this.lblCompletedHint.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            //
+            // 
             // pillCompletedCount
-            //
+            // 
             this.pillCompletedCount.AutoSize = true;
             this.pillCompletedCount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(209)))), ((int)(((byte)(250)))), ((int)(((byte)(229)))));
             this.pillCompletedCount.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(110)))), ((int)(((byte)(231)))), ((int)(((byte)(183)))));
@@ -331,34 +343,35 @@ namespace tempProj
             this.pillCompletedCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(4)))), ((int)(((byte)(120)))), ((int)(((byte)(87)))));
             this.pillCompletedCount.Location = new System.Drawing.Point(194, 14);
             this.pillCompletedCount.Name = "pillCompletedCount";
-            this.pillCompletedCount.Size = new System.Drawing.Size(66, 23);
+            this.pillCompletedCount.Size = new System.Drawing.Size(66, 21);
             this.pillCompletedCount.TabIndex = 2;
             this.pillCompletedCount.Text = "0 Items";
-            //
+            // 
             // lblCompletedTitle
-            //
+            // 
             this.lblCompletedTitle.AutoSize = true;
             this.lblCompletedTitle.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblCompletedTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
             this.lblCompletedTitle.Location = new System.Drawing.Point(38, 17);
             this.lblCompletedTitle.Name = "lblCompletedTitle";
-            this.lblCompletedTitle.Size = new System.Drawing.Size(143, 17);
+            this.lblCompletedTitle.Size = new System.Drawing.Size(139, 17);
             this.lblCompletedTitle.TabIndex = 1;
             this.lblCompletedTitle.Text = "COMPLETED TICKETS";
-            //
+            // 
             // lblCompletedDot
-            //
+            // 
             this.lblCompletedDot.AutoSize = true;
             this.lblCompletedDot.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblCompletedDot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
             this.lblCompletedDot.Location = new System.Drawing.Point(20, 18);
             this.lblCompletedDot.Name = "lblCompletedDot";
-            this.lblCompletedDot.Size = new System.Drawing.Size(16, 15);
+            this.lblCompletedDot.Size = new System.Drawing.Size(14, 15);
             this.lblCompletedDot.TabIndex = 0;
             this.lblCompletedDot.Text = "●";
-            //
+            // 
             // pnlTop
-            //
+            // 
+            this.pnlTop.Controls.Add(this.pnlSearchCard);
             this.pnlTop.Controls.Add(this.pnlSort);
             this.pnlTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlTop.Location = new System.Drawing.Point(24, 16);
@@ -366,63 +379,106 @@ namespace tempProj
             this.pnlTop.Padding = new System.Windows.Forms.Padding(0, 0, 0, 16);
             this.pnlTop.Size = new System.Drawing.Size(832, 60);
             this.pnlTop.TabIndex = 0;
-            //
+            // 
+            // pnlSearchCard
+            // 
+            this.pnlSearchCard.BackColor = System.Drawing.Color.White;
+            this.pnlSearchCard.Controls.Add(this.txtsearch);
+            this.pnlSearchCard.Controls.Add(this.pnlSearchIcon);
+            this.pnlSearchCard.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.pnlSearchCard.FocusBorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(27)))), ((int)(((byte)(27)))));
+            this.pnlSearchCard.Location = new System.Drawing.Point(0, 0);
+            this.pnlSearchCard.Name = "pnlSearchCard";
+            this.pnlSearchCard.Padding = new System.Windows.Forms.Padding(10, 12, 14, 0);
+            this.pnlSearchCard.Size = new System.Drawing.Size(320, 44);
+            this.pnlSearchCard.TabIndex = 1;
+            this.pnlSearchCard.Click += new System.EventHandler(this.pnlSearchCard_Click);
+            // 
+            // txtsearch
+            // 
+            this.txtsearch.BackColor = System.Drawing.Color.White;
+            this.txtsearch.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtsearch.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.txtsearch.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.txtsearch.Font = new System.Drawing.Font("Segoe UI", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtsearch.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(23)))), ((int)(((byte)(42)))));
+            this.txtsearch.Location = new System.Drawing.Point(38, 12);
+            this.txtsearch.Name = "txtsearch";
+            this.txtsearch.Size = new System.Drawing.Size(268, 19);
+            this.txtsearch.TabIndex = 0;
+            this.txtsearch.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            this.txtsearch.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtsearch_KeyPress);
+            // 
+            // pnlSearchIcon
+            // 
+            this.pnlSearchIcon.BackColor = System.Drawing.Color.White;
+            this.pnlSearchIcon.Cursor = System.Windows.Forms.Cursors.IBeam;
+            this.pnlSearchIcon.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pnlSearchIcon.Location = new System.Drawing.Point(10, 12);
+            this.pnlSearchIcon.Name = "pnlSearchIcon";
+            this.pnlSearchIcon.Size = new System.Drawing.Size(28, 32);
+            this.pnlSearchIcon.TabIndex = 1;
+            this.pnlSearchIcon.Click += new System.EventHandler(this.pnlSearchCard_Click);
+            this.pnlSearchIcon.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlSearchIcon_Paint);
+            // 
             // pnlSort
-            //
+            // 
             this.pnlSort.BackColor = System.Drawing.Color.White;
             this.pnlSort.Controls.Add(this.rbtnDescending);
             this.pnlSort.Controls.Add(this.rbtnAscending);
             this.pnlSort.Controls.Add(this.lblSortOptions);
-            this.pnlSort.CornerRadius = 10;
             this.pnlSort.Dock = System.Windows.Forms.DockStyle.Right;
             this.pnlSort.Location = new System.Drawing.Point(402, 0);
             this.pnlSort.Name = "pnlSort";
             this.pnlSort.Size = new System.Drawing.Size(430, 44);
             this.pnlSort.TabIndex = 0;
-            //
+            // 
             // rbtnDescending
-            //
+            // 
             this.rbtnDescending.AutoSize = true;
             this.rbtnDescending.BackColor = System.Drawing.Color.Transparent;
             this.rbtnDescending.Cursor = System.Windows.Forms.Cursors.Hand;
             this.rbtnDescending.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.rbtnDescending.Location = new System.Drawing.Point(278, 13);
             this.rbtnDescending.Name = "rbtnDescending";
-            this.rbtnDescending.Size = new System.Drawing.Size(136, 19);
+            this.rbtnDescending.Size = new System.Drawing.Size(127, 19);
             this.rbtnDescending.TabIndex = 2;
             this.rbtnDescending.Text = "Sort by Descending";
             this.rbtnDescending.UseVisualStyleBackColor = false;
             this.rbtnDescending.CheckedChanged += new System.EventHandler(this.rbtnDescending_CheckedChanged);
-            //
+            // 
             // rbtnAscending
-            //
+            // 
             this.rbtnAscending.AutoSize = true;
             this.rbtnAscending.BackColor = System.Drawing.Color.Transparent;
             this.rbtnAscending.Cursor = System.Windows.Forms.Cursors.Hand;
             this.rbtnAscending.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.rbtnAscending.Location = new System.Drawing.Point(140, 13);
             this.rbtnAscending.Name = "rbtnAscending";
-            this.rbtnAscending.Size = new System.Drawing.Size(129, 19);
+            this.rbtnAscending.Size = new System.Drawing.Size(121, 19);
             this.rbtnAscending.TabIndex = 1;
             this.rbtnAscending.Text = "Sort by Ascending";
             this.rbtnAscending.UseVisualStyleBackColor = false;
             this.rbtnAscending.CheckedChanged += new System.EventHandler(this.rbtnAscending_CheckedChanged);
-            //
+            // 
             // lblSortOptions
-            //
+            // 
             this.lblSortOptions.AutoSize = true;
             this.lblSortOptions.BackColor = System.Drawing.Color.Transparent;
             this.lblSortOptions.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSortOptions.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblSortOptions.Location = new System.Drawing.Point(18, 15);
             this.lblSortOptions.Name = "lblSortOptions";
-            this.lblSortOptions.Size = new System.Drawing.Size(93, 13);
+            this.lblSortOptions.Size = new System.Drawing.Size(87, 13);
             this.lblSortOptions.TabIndex = 0;
             this.lblSortOptions.Text = "SORT OPTIONS:";
-            //
+            // 
             // pnlSidebar
-            //
+            // 
             this.pnlSidebar.BackColor = System.Drawing.Color.White;
+            this.pnlSidebar.Controls.Add(this.lblPcCaption);
+            this.pnlSidebar.Controls.Add(this.pnlPcChip);
+            this.pnlSidebar.Controls.Add(this.pictureBox1);
             this.pnlSidebar.Controls.Add(this.pnlSystem);
             this.pnlSidebar.Controls.Add(this.btnExportCompleted);
             this.pnlSidebar.Controls.Add(this.btnReopenTicket);
@@ -437,18 +493,69 @@ namespace tempProj
             this.pnlSidebar.Name = "pnlSidebar";
             this.pnlSidebar.Size = new System.Drawing.Size(240, 650);
             this.pnlSidebar.TabIndex = 1;
-            //
-            // pnlSidebarBorder
-            //
-            this.pnlSidebarBorder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
-            this.pnlSidebarBorder.Dock = System.Windows.Forms.DockStyle.Right;
-            this.pnlSidebarBorder.Location = new System.Drawing.Point(239, 0);
-            this.pnlSidebarBorder.Name = "pnlSidebarBorder";
-            this.pnlSidebarBorder.Size = new System.Drawing.Size(1, 650);
-            this.pnlSidebarBorder.TabIndex = 8;
-            //
+            this.pnlSidebar.Paint += new System.Windows.Forms.PaintEventHandler(this.pnlSidebar_Paint);
+            // 
+            // lblPcCaption
+            // 
+            this.lblPcCaption.BackColor = System.Drawing.Color.White;
+            this.lblPcCaption.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblPcCaption.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
+            this.lblPcCaption.Location = new System.Drawing.Point(0, 500);
+            this.lblPcCaption.Name = "lblPcCaption";
+            this.lblPcCaption.Size = new System.Drawing.Size(239, 16);
+            this.lblPcCaption.TabIndex = 10;
+            this.lblPcCaption.Text = "THIS COMPUTER";
+            this.lblPcCaption.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // pnlPcChip
+            // 
+            this.pnlPcChip.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.pnlPcChip.Controls.Add(this.pcname);
+            this.pnlPcChip.Controls.Add(this.lblPcDot);
+            this.pnlPcChip.Location = new System.Drawing.Point(25, 520);
+            this.pnlPcChip.Name = "pnlPcChip";
+            this.pnlPcChip.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);
+            this.pnlPcChip.Size = new System.Drawing.Size(190, 40);
+            this.pnlPcChip.TabIndex = 11;
+            // 
+            // pcname
+            // 
+            this.pcname.AutoEllipsis = true;
+            this.pcname.BackColor = System.Drawing.Color.Transparent;
+            this.pcname.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pcname.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.pcname.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.pcname.Location = new System.Drawing.Point(28, 0);
+            this.pcname.Name = "pcname";
+            this.pcname.Size = new System.Drawing.Size(150, 40);
+            this.pcname.TabIndex = 0;
+            this.pcname.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pcname.Click += new System.EventHandler(this.pcname_Click);
+            // 
+            // lblPcDot
+            // 
+            this.lblPcDot.BackColor = System.Drawing.Color.Transparent;
+            this.lblPcDot.Dock = System.Windows.Forms.DockStyle.Left;
+            this.lblPcDot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
+            this.lblPcDot.Location = new System.Drawing.Point(12, 0);
+            this.lblPcDot.Name = "lblPcDot";
+            this.lblPcDot.Size = new System.Drawing.Size(16, 40);
+            this.lblPcDot.TabIndex = 1;
+            this.lblPcDot.Text = "●";
+            this.lblPcDot.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(35, 357);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(159, 140);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox1.TabIndex = 9;
+            this.pictureBox1.TabStop = false;
+            // 
             // pnlSystem
-            //
+            // 
             this.pnlSystem.BackColor = System.Drawing.Color.White;
             this.pnlSystem.Controls.Add(this.lblSystemText);
             this.pnlSystem.Controls.Add(this.lblSystemDot);
@@ -457,31 +564,30 @@ namespace tempProj
             this.pnlSystem.Name = "pnlSystem";
             this.pnlSystem.Size = new System.Drawing.Size(239, 48);
             this.pnlSystem.TabIndex = 7;
-            //
+            // 
             // lblSystemText
-            //
+            // 
             this.lblSystemText.AutoSize = true;
             this.lblSystemText.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.lblSystemText.Location = new System.Drawing.Point(38, 16);
             this.lblSystemText.Name = "lblSystemText";
-            this.lblSystemText.Size = new System.Drawing.Size(86, 15);
+            this.lblSystemText.Size = new System.Drawing.Size(83, 15);
             this.lblSystemText.TabIndex = 1;
             this.lblSystemText.Text = "System Online";
-            //
+            // 
             // lblSystemDot
-            //
+            // 
             this.lblSystemDot.AutoSize = true;
             this.lblSystemDot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
             this.lblSystemDot.Location = new System.Drawing.Point(20, 16);
             this.lblSystemDot.Name = "lblSystemDot";
-            this.lblSystemDot.Size = new System.Drawing.Size(16, 15);
+            this.lblSystemDot.Size = new System.Drawing.Size(14, 15);
             this.lblSystemDot.TabIndex = 0;
             this.lblSystemDot.Text = "●";
-            //
+            // 
             // btnExportCompleted
-            //
+            // 
             this.btnExportCompleted.BackColor = System.Drawing.Color.White;
-            this.btnExportCompleted.CornerRadius = 8;
             this.btnExportCompleted.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnExportCompleted.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnExportCompleted.Glyph = tempProj.ButtonGlyph.Download;
@@ -497,11 +603,10 @@ namespace tempProj
             this.btnExportCompleted.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnExportCompleted.UseVisualStyleBackColor = false;
             this.btnExportCompleted.Click += new System.EventHandler(this.btnExportCompleted_Click);
-            //
+            // 
             // btnReopenTicket
-            //
+            // 
             this.btnReopenTicket.BackColor = System.Drawing.Color.White;
-            this.btnReopenTicket.CornerRadius = 8;
             this.btnReopenTicket.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnReopenTicket.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(65)))), ((int)(((byte)(85)))));
             this.btnReopenTicket.Glyph = tempProj.ButtonGlyph.Refresh;
@@ -517,11 +622,10 @@ namespace tempProj
             this.btnReopenTicket.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnReopenTicket.UseVisualStyleBackColor = false;
             this.btnReopenTicket.Click += new System.EventHandler(this.btnReopenTicket_Click);
-            //
+            // 
             // btnViewDetails
-            //
+            // 
             this.btnViewDetails.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(243)))), ((int)(((byte)(244)))), ((int)(((byte)(246)))));
-            this.btnViewDetails.CornerRadius = 8;
             this.btnViewDetails.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnViewDetails.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
             this.btnViewDetails.Glyph = tempProj.ButtonGlyph.Document;
@@ -537,11 +641,10 @@ namespace tempProj
             this.btnViewDetails.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnViewDetails.UseVisualStyleBackColor = false;
             this.btnViewDetails.Click += new System.EventHandler(this.btnViewDetails_Click);
-            //
+            // 
             // btnCreateTicket
-            //
+            // 
             this.btnCreateTicket.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(185)))), ((int)(((byte)(28)))), ((int)(((byte)(45)))));
-            this.btnCreateTicket.CornerRadius = 8;
             this.btnCreateTicket.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnCreateTicket.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnCreateTicket.ForeColor = System.Drawing.Color.White;
@@ -555,18 +658,18 @@ namespace tempProj
             this.btnCreateTicket.Text = "Create Ticket";
             this.btnCreateTicket.UseVisualStyleBackColor = false;
             this.btnCreateTicket.Click += new System.EventHandler(this.btnCreateTicket_Click);
-            //
+            // 
             // lblWorkspaceSub
-            //
+            // 
             this.lblWorkspaceSub.AutoSize = true;
             this.lblWorkspaceSub.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblWorkspaceSub.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblWorkspaceSub.Location = new System.Drawing.Point(74, 58);
             this.lblWorkspaceSub.Name = "lblWorkspaceSub";
-            this.lblWorkspaceSub.Size = new System.Drawing.Size(93, 13);
+            this.lblWorkspaceSub.Size = new System.Drawing.Size(108, 13);
             this.lblWorkspaceSub.TabIndex = 2;
             this.lblWorkspaceSub.Text = "Ticket Management";
-            //
+            // 
             // lblWorkspaceTitle
             // 
             this.lblWorkspaceTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -575,11 +678,11 @@ namespace tempProj
             this.lblWorkspaceTitle.Name = "lblWorkspaceTitle";
             this.lblWorkspaceTitle.Size = new System.Drawing.Size(158, 38);
             this.lblWorkspaceTitle.TabIndex = 1;
-            this.lblWorkspaceTitle.Text = "Radyo Pilipino Media Group";
+            this.lblWorkspaceTitle.Text = "Radyo Pilipino\r\nMedia Group";
             this.lblWorkspaceTitle.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
             // 
             // picLogo
-            //
+            // 
             this.picLogo.Image = global::tempProj.Properties.Resources.Company_Logo;
             this.picLogo.Location = new System.Drawing.Point(20, 22);
             this.picLogo.Name = "picLogo";
@@ -587,9 +690,18 @@ namespace tempProj
             this.picLogo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.picLogo.TabIndex = 0;
             this.picLogo.TabStop = false;
-            //
+            // 
+            // pnlSidebarBorder
+            // 
+            this.pnlSidebarBorder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
+            this.pnlSidebarBorder.Dock = System.Windows.Forms.DockStyle.Right;
+            this.pnlSidebarBorder.Location = new System.Drawing.Point(239, 0);
+            this.pnlSidebarBorder.Name = "pnlSidebarBorder";
+            this.pnlSidebarBorder.Size = new System.Drawing.Size(1, 650);
+            this.pnlSidebarBorder.TabIndex = 8;
+            // 
             // pnlStatusBar
-            //
+            // 
             this.pnlStatusBar.BackColor = System.Drawing.Color.White;
             this.pnlStatusBar.Controls.Add(this.lblVersion);
             this.pnlStatusBar.Controls.Add(this.lblCounts);
@@ -601,9 +713,9 @@ namespace tempProj
             this.pnlStatusBar.Name = "pnlStatusBar";
             this.pnlStatusBar.Size = new System.Drawing.Size(1120, 30);
             this.pnlStatusBar.TabIndex = 2;
-            //
+            // 
             // lblVersion
-            //
+            // 
             this.lblVersion.Dock = System.Windows.Forms.DockStyle.Right;
             this.lblVersion.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblVersion.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
@@ -614,51 +726,51 @@ namespace tempProj
             this.lblVersion.TabIndex = 4;
             this.lblVersion.Text = "Form1 v1.0.0";
             this.lblVersion.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            //
+            // 
             // lblCounts
-            //
+            // 
             this.lblCounts.AutoSize = true;
             this.lblCounts.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblCounts.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblCounts.Location = new System.Drawing.Point(106, 8);
             this.lblCounts.Name = "lblCounts";
-            this.lblCounts.Size = new System.Drawing.Size(160, 13);
+            this.lblCounts.Size = new System.Drawing.Size(152, 13);
             this.lblCounts.TabIndex = 3;
             this.lblCounts.Text = "•   Active: 0   •   Completed: 0";
-            //
+            // 
             // lblConnText
-            //
+            // 
             this.lblConnText.AutoSize = true;
             this.lblConnText.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblConnText.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
             this.lblConnText.Location = new System.Drawing.Point(32, 8);
             this.lblConnText.Name = "lblConnText";
-            this.lblConnText.Size = new System.Drawing.Size(60, 13);
+            this.lblConnText.Size = new System.Drawing.Size(63, 13);
             this.lblConnText.TabIndex = 2;
             this.lblConnText.Text = "Connected";
-            //
+            // 
             // lblConnDot
-            //
+            // 
             this.lblConnDot.AutoSize = true;
             this.lblConnDot.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblConnDot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(16)))), ((int)(((byte)(185)))), ((int)(((byte)(129)))));
             this.lblConnDot.Location = new System.Drawing.Point(16, 8);
             this.lblConnDot.Name = "lblConnDot";
-            this.lblConnDot.Size = new System.Drawing.Size(15, 13);
+            this.lblConnDot.Size = new System.Drawing.Size(14, 13);
             this.lblConnDot.TabIndex = 1;
             this.lblConnDot.Text = "●";
-            //
+            // 
             // pnlStatusBorder
-            //
+            // 
             this.pnlStatusBorder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(226)))), ((int)(((byte)(232)))), ((int)(((byte)(240)))));
             this.pnlStatusBorder.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlStatusBorder.Location = new System.Drawing.Point(0, 0);
             this.pnlStatusBorder.Name = "pnlStatusBorder";
             this.pnlStatusBorder.Size = new System.Drawing.Size(1120, 1);
             this.pnlStatusBorder.TabIndex = 0;
-            //
+            // 
             // Form1
-            //
+            // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(246)))), ((int)(((byte)(247)))), ((int)(((byte)(251)))));
@@ -683,10 +795,14 @@ namespace tempProj
             this.pnlCompletedHeader.ResumeLayout(false);
             this.pnlCompletedHeader.PerformLayout();
             this.pnlTop.ResumeLayout(false);
+            this.pnlSearchCard.ResumeLayout(false);
+            this.pnlSearchCard.PerformLayout();
             this.pnlSort.ResumeLayout(false);
             this.pnlSort.PerformLayout();
             this.pnlSidebar.ResumeLayout(false);
             this.pnlSidebar.PerformLayout();
+            this.pnlPcChip.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.pnlSystem.ResumeLayout(false);
             this.pnlSystem.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picLogo)).EndInit();
@@ -737,5 +853,13 @@ namespace tempProj
         private System.Windows.Forms.Label lblConnText;
         private System.Windows.Forms.Label lblConnDot;
         private System.Windows.Forms.Panel pnlStatusBorder;
+        private TextBox txtsearch;
+        private PictureBox pictureBox1;
+        private Label pcname;
+        private tempProj.RoundedPanel pnlSearchCard;
+        private System.Windows.Forms.Panel pnlSearchIcon;
+        private System.Windows.Forms.Label lblPcCaption;
+        private tempProj.RoundedPanel pnlPcChip;
+        private System.Windows.Forms.Label lblPcDot;
     }
 }
