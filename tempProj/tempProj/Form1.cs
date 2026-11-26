@@ -36,7 +36,7 @@ namespace tempProj
         {
             InitializeComponent();
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }   // app icon (Project > Properties > Application > Icon)
-            lblVersion.Text = "Form1 v" + Application.ProductVersion;
+            lblCopyright.Text = "© 2026 Radyo Pilipino Media Group. All rights reserved.   |   RPMG Ticketing System v" + Application.ProductVersion;
             SetPcName(Environment.MachineName);
 
             searchDebounceTimer.Tick += (s, e) =>

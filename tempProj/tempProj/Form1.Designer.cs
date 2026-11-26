@@ -78,7 +78,7 @@ namespace tempProj
             this.picLogo = new System.Windows.Forms.PictureBox();
             this.pnlSidebarBorder = new System.Windows.Forms.Panel();
             this.pnlStatusBar = new System.Windows.Forms.Panel();
-            this.lblVersion = new System.Windows.Forms.Label();
+            this.lblCopyright = new System.Windows.Forms.Label();
             this.lblCounts = new System.Windows.Forms.Label();
             this.lblConnText = new System.Windows.Forms.Label();
             this.lblConnDot = new System.Windows.Forms.Label();
@@ -703,7 +703,7 @@ namespace tempProj
             // pnlStatusBar
             // 
             this.pnlStatusBar.BackColor = System.Drawing.Color.White;
-            this.pnlStatusBar.Controls.Add(this.lblVersion);
+            this.pnlStatusBar.Controls.Add(this.lblCopyright);
             this.pnlStatusBar.Controls.Add(this.lblCounts);
             this.pnlStatusBar.Controls.Add(this.lblConnText);
             this.pnlStatusBar.Controls.Add(this.lblConnDot);
@@ -714,18 +714,19 @@ namespace tempProj
             this.pnlStatusBar.Size = new System.Drawing.Size(1120, 30);
             this.pnlStatusBar.TabIndex = 2;
             // 
-            // lblVersion
+            // lblCopyright
             // 
-            this.lblVersion.Dock = System.Windows.Forms.DockStyle.Right;
-            this.lblVersion.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblVersion.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
-            this.lblVersion.Location = new System.Drawing.Point(940, 1);
-            this.lblVersion.Name = "lblVersion";
-            this.lblVersion.Padding = new System.Windows.Forms.Padding(0, 0, 16, 0);
-            this.lblVersion.Size = new System.Drawing.Size(180, 29);
-            this.lblVersion.TabIndex = 4;
-            this.lblVersion.Text = "Form1 v1.0.0";
-            this.lblVersion.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.lblCopyright.Dock = System.Windows.Forms.DockStyle.Right;
+            this.lblCopyright.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblCopyright.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
+            this.lblCopyright.Location = new System.Drawing.Point(560, 1);
+            this.lblCopyright.Name = "lblCopyright";
+            this.lblCopyright.AutoEllipsis = true;
+            this.lblCopyright.Padding = new System.Windows.Forms.Padding(0, 0, 16, 0);
+            this.lblCopyright.Size = new System.Drawing.Size(560, 29);
+            this.lblCopyright.TabIndex = 5;
+            this.lblCopyright.Text = "© 2026 Radyo Pilipino Media Group. All rights reserved.   |   RPMG Ticketing System v1.0.0.0";
+            this.lblCopyright.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // lblCounts
             // 
@@ -848,7 +849,7 @@ namespace tempProj
         private System.Windows.Forms.Label lblWorkspaceTitle;
         private System.Windows.Forms.PictureBox picLogo;
         private System.Windows.Forms.Panel pnlStatusBar;
-        private System.Windows.Forms.Label lblVersion;
+        private System.Windows.Forms.Label lblCopyright;
         private System.Windows.Forms.Label lblCounts;
         private System.Windows.Forms.Label lblConnText;
         private System.Windows.Forms.Label lblConnDot;
