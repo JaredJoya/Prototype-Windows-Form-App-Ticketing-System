@@ -659,8 +659,28 @@ namespace tempProj
 
         public ModernComboBox()
         {
+            // The face is painted manually in WM_PAINT, so the control must be fully repainted
+            // whenever its size changes (e.g. form maximized/restored); otherwise the text and
+            // chevron stay where they were drawn for the old width.
+            SetStyle(ControlStyles.ResizeRedraw, true);
             DropDownStyle = ComboBoxStyle.DropDownList;
             BackColor = Color.White;
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+
+            // Keep the drop-down list as wide as the box itself.
+            if (Width > 0 && DropDownWidth != Width)
+            {
+                DropDownWidth = Width;
+            }
+
+            if (IsHandleCreated)
+            {
+                Invalidate();
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]

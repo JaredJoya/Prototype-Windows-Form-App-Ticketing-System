@@ -7,6 +7,19 @@ using Google.Cloud.Firestore;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 
+// Admin list: shown first so it can be reviewed/changed before the API starts accepting requests.
+var adminList = AdminList.LoadOrCreate();
+if (AdminConsole.CanPrompt(args))
+{
+    AdminConsole.Run(adminList);
+    Console.WriteLine();
+    Console.WriteLine("Admin list saved. Starting the API...");
+}
+else
+{
+    AdminConsole.PrintList(adminList);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -43,6 +56,7 @@ Environment.SetEnvironmentVariable(
 );
 
 var firestore = await FirestoreDb.CreateAsync("ticketing-system-9219d");
+Console.WriteLine("Firestore client ready.");
 var philippinesTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "Singapore Standard Time" : "Asia/Manila");
 
 app.MapGet("/firestore-test", async () =>
@@ -80,21 +94,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-var adminIpAddresses = new HashSet<String>(StringComparer.OrdinalIgnoreCase)
-{
-    "192.168.0.184"
-};
-
-bool isAdminClient(HttpContext context)
-{
-    IPAddress? remoteIp = context.Connection.RemoteIpAddress;
-
-    if (remoteIp == null)
-        return false;
-    if (remoteIp.IsIPv4MappedToIPv6)
-        remoteIp = remoteIp.MapToIPv4();
-    return adminIpAddresses.Contains(remoteIp.ToString());
-}
+bool isAdminClient(HttpContext context) => adminList.Contains(context.Connection.RemoteIpAddress);
 
 app.MapGet("/permissions", (HttpContext context) =>
 {
@@ -352,6 +352,7 @@ app.MapDelete("/tickets/{id}", async (string id, string createdBy, string comput
     });
 });
 
+Console.WriteLine($"API listening on http://0.0.0.0:5075  ({adminList.Entries.Count} admin(s) configured)");
 app.Run();
 
 public class CreateTicketRequest

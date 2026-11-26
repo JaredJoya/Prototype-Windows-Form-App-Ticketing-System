@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows.Forms;
 
 namespace tempProj
@@ -148,7 +148,7 @@ namespace tempProj
             this.ticketDataGrid.AllowUserToAddRows = false;
             this.ticketDataGrid.AllowUserToDeleteRows = false;
             this.ticketDataGrid.AllowUserToResizeRows = false;
-            this.ticketDataGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
+            this.ticketDataGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.ticketDataGrid.BackgroundColor = System.Drawing.Color.White;
             this.ticketDataGrid.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.ticketDataGrid.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;
@@ -268,7 +268,7 @@ namespace tempProj
             this.completeTicketDataGrid.AllowUserToAddRows = false;
             this.completeTicketDataGrid.AllowUserToDeleteRows = false;
             this.completeTicketDataGrid.AllowUserToResizeRows = false;
-            this.completeTicketDataGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
+            this.completeTicketDataGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.completeTicketDataGrid.BackgroundColor = System.Drawing.Color.White;
             this.completeTicketDataGrid.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.completeTicketDataGrid.CellBorderStyle = System.Windows.Forms.DataGridViewCellBorderStyle.SingleHorizontal;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -77,26 +77,26 @@ namespace tempProj
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            DialogResult choice = MessageBox.Show("Choose which API server this computer should use:\n\n" +
-                "Yes = Network 1 (192.168.1.*)\n\n" +
-                "No = Network 2 (192.168.0.*)\n\n" +
-                "Cancel = Exit the application", "Select Network",
-                MessageBoxButtons.YesNoCancel,
-                MessageBoxIcon.Question);
+            // Work out which network this PC is on automatically (default gateway / IP address, then
+            // which API server answers). The selection dialog only appears when that can't be decided.
+            NetworkProfile network = await NetworkDetector.DetectAsync();
 
-            if (choice == DialogResult.Yes)
+            if (network == null)
             {
-                ApiService.SetBaseUrl("http://192.168.1.101:5075");
+                using (NetworkSelectDialog dialog = new NetworkSelectDialog(
+                    NetworkDetector.Networks, NetworkDetector.DescribeLocalNetwork()))
+                {
+                    if (dialog.ShowDialog() != DialogResult.OK)
+                    {
+                        Application.Exit();
+                        return;
+                    }
+
+                    network = dialog.SelectedNetwork;
+                }
             }
-            else if (choice == DialogResult.No)
-            {
-                ApiService.SetBaseUrl("http://192.168.0.184:5075");
-            }
-            else
-            {
-                Application.Exit();
-                return;
-            }
+
+            ApiService.SetBaseUrl(network.ServerUrl);
 
             ticketDataGrid.AutoGenerateColumns = true;
             ticketDataGrid.ReadOnly = true;
@@ -243,19 +243,41 @@ namespace tempProj
             lblSystemText.Text = online ? "System Online" : "System Offline";
         }
 
+        // Upper limit (px) for the content-based width of columns that can hold long free text.
+        // Anything longer is cut with "..." in the cell and shown in full in the cell tooltip.
+        private static readonly Dictionary<string, int> MaxColumnWidth =
+            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Title",       320 },
+                { "Description", 480 },
+            };
+
+        private const int MinColumnWidth = 60;
+        private const int HeaderExtraWidth = 28; // header padding + room for the sort glyph
+
         private static void ApplyColumnSizing(DataGridView grid)
         {
-            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            // Step 1: measure. Let every column size itself to its widest cell (including the
+            // Status badge padding), so we know how much room each column needs to show its text.
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
             foreach (DataGridViewColumn column in grid.Columns)
             {
-                // The requester's email is only used by the API for receipts; keep it out of the
-                // grids (and therefore out of the CSV export, which only writes visible columns).
                 if (string.Equals(column.Name, "ReceiptEmail", StringComparison.OrdinalIgnoreCase))
                 {
+                    // The requester's email is only used by the API for receipts; keep it out of the
+                    // grids (and therefore out of the CSV export, which only writes visible columns).
                     column.Visible = false;
                     continue;
                 }
+
+                if (string.Equals(column.Name, "UrgentIconColumn", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                column.AutoSizeMode = DataGridViewAutoSizeColumnMode.NotSet;
+                column.MinimumWidth = 20;
 
                 // Extra right padding on Status leaves room for the badge.
                 if (string.Equals(column.Name, "Status", StringComparison.OrdinalIgnoreCase))
@@ -263,6 +285,51 @@ namespace tempProj
                     column.DefaultCellStyle.Padding = new Padding(8, 0, 36, 0);
                 }
             }
+
+            grid.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.AllCells);
+
+            // Step 2: fill. Each column's measured width becomes its minimum (so its text is
+            // never cut unless it hit the cap above) and its weight, so any extra space - e.g.
+            // when the form is maximized - is shared out in proportion to the content. If the
+            // grid is too narrow for all minimums, a horizontal scrollbar appears instead.
+            Font headerFont = grid.ColumnHeadersDefaultCellStyle.Font ?? grid.Font;
+
+            foreach (DataGridViewColumn column in grid.Columns)
+            {
+                if (!column.Visible)
+                {
+                    continue;
+                }
+
+                // The urgent-ticket icon column stays a fixed width instead of stretching.
+                if (string.Equals(column.Name, "UrgentIconColumn", StringComparison.OrdinalIgnoreCase))
+                {
+                    column.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
+                    column.Width = 44;
+                    column.MinimumWidth = 44;
+                    column.Resizable = DataGridViewTriState.False;
+                    continue;
+                }
+
+                // Headers are painted in upper case, which is wider than the stored header text.
+                int headerWidth = TextRenderer.MeasureText(
+                    (column.HeaderText ?? "").ToUpperInvariant(), headerFont).Width + HeaderExtraWidth;
+
+                int preferred = Math.Max(Math.Max(column.Width, headerWidth), MinColumnWidth);
+
+                if (MaxColumnWidth.TryGetValue(column.Name, out int max))
+                {
+                    preferred = Math.Min(preferred, Math.Max(max, headerWidth));
+                }
+
+                column.MinimumWidth = preferred;
+                column.FillWeight = preferred;
+                column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                column.ToolTipText = null;
+            }
+
+            grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            grid.ShowCellToolTips = true; // truncated cells show their full text on hover
         }
 
         /// <summary>
@@ -497,6 +564,7 @@ namespace tempProj
                 iconColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.None;
                 iconColumn.Width = 44;
                 iconColumn.MinimumWidth = 44;
+                iconColumn.Resizable = DataGridViewTriState.False;
                 iconColumn.ImageLayout = DataGridViewImageCellLayout.Zoom;
                 iconColumn.ReadOnly = true;
                 iconColumn.SortMode = DataGridViewColumnSortMode.NotSortable;
