@@ -1,1 +1,1 @@
-Note: I removed appsettings.json for security purposes, please look for the folder on the company account gmail on gdrive for that specific file
+Note: I removed appsettings.json and firestore-service-account.json on the tempAPI project for security purposes, please look for the folder on the company account gmail on gdrive for that specific file.
