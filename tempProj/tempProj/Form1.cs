@@ -96,6 +96,35 @@ namespace tempProj
                 }
             }
 
+            // Make sure the chosen server actually answers before loading anything, so a stopped API
+            // gives one clear dialog (retry / choose another network / exit) instead of several errors.
+            while (!await NetworkDetector.IsReachableAsync(network, 3000))
+            {
+                using (ServerUnreachableDialog unreachable = new ServerUnreachableDialog(
+                    network, NetworkDetector.DescribeLocalNetwork()))
+                {
+                    unreachable.ShowDialog();
+
+                    if (unreachable.Choice == ServerDialogChoice.Exit)
+                    {
+                        Application.Exit();
+                        return;
+                    }
+
+                    if (unreachable.Choice == ServerDialogChoice.ChooseNetwork)
+                    {
+                        using (NetworkSelectDialog picker = new NetworkSelectDialog(
+                            NetworkDetector.Networks, NetworkDetector.DescribeLocalNetwork(), "Back"))
+                        {
+                            if (picker.ShowDialog() == DialogResult.OK)
+                            {
+                                network = picker.SelectedNetwork;
+                            }
+                        }
+                    }
+                }
+            }
+
             ApiService.SetBaseUrl(network.ServerUrl);
 
             ticketDataGrid.AutoGenerateColumns = true;

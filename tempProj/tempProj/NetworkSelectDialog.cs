@@ -152,7 +152,8 @@ namespace tempProj
             }
         }
 
-        private static async Task<bool> IsReachableAsync(NetworkProfile network, int timeoutMs)
+        /// <summary>True when the network's API server accepts a connection within the timeout.</summary>
+        public static async Task<bool> IsReachableAsync(NetworkProfile network, int timeoutMs)
         {
             try
             {
@@ -200,9 +201,12 @@ namespace tempProj
         /// <summary>The network the user picked (valid when the dialog returns OK).</summary>
         public NetworkProfile SelectedNetwork { get; private set; }
 
-        public NetworkSelectDialog(IList<NetworkProfile> networks, string detectedSummary)
+        private readonly string cancelText;
+
+        public NetworkSelectDialog(IList<NetworkProfile> networks, string detectedSummary, string cancelText = "Exit")
         {
             this.networks = networks;
+            this.cancelText = cancelText;
             BuildUi(detectedSummary);
         }
 
@@ -298,7 +302,7 @@ namespace tempProj
 
             RoundedButton btnExit = new RoundedButton
             {
-                Text = "Exit",
+                Text = cancelText,
                 Font = new Font("Segoe UI", 9.75F),
                 BackColor = Color.White,
                 ForeColor = SlateDark,
