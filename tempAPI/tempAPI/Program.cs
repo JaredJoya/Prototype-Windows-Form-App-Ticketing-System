@@ -305,8 +305,20 @@ app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request, HttpC
     if (!string.Equals(oldStatus, request.Status, StringComparison.OrdinalIgnoreCase))
     {
         string when = FormatManila(DateTime.UtcNow);
-        _ = Task.Run(() => emailService.SendStatusChangedAsync(
-            id, requesterEmail, ticketTitle, oldStatus, request.Status, request.CreatedBy, request.ComputerName, when));
+        bool reopened = string.Equals(oldStatus?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(request.Status?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase);
+
+        if (reopened)
+        {
+            // A finished ticket was reopened: tell the ticket owner (and the admin mailbox) clearly.
+            _ = Task.Run(() => emailService.SendTicketReopenedAsync(
+                id, requesterEmail, ticketTitle, request.Status, request.CreatedBy, request.ComputerName, when));
+        }
+        else
+        {
+            _ = Task.Run(() => emailService.SendStatusChangedAsync(
+                id, requesterEmail, ticketTitle, oldStatus, request.Status, request.CreatedBy, request.ComputerName, when));
+        }
     }
 
     return Results.Ok(new { Id = id, Message = "Ticket updated succesfully" });
@@ -487,6 +499,27 @@ public class EmailService
             footer: "This is an automated notification from the Ticketing System.");
         var recipients = new List<string> { _settings.AdminEmail, requesterEmail };
         return SendAsync(recipients, $"[Ticket Status: {newStatus}] {title} (#{id})", text, html);
+    }
+
+    // Sent when a Complete ticket is reopened, so the person who owns it knows work has resumed.
+    public Task SendTicketReopenedAsync(string id, string requesterEmail, string title,
+        string newStatus, string reopenedBy, string computer, string when)
+    {
+        string text =
+            $"Your ticket has been reopened.\n\n" +
+            $"Ticket ID  : {id}\nTitle      : {title}\n" +
+            $"Status     : Complete  ->  {newStatus}\n" +
+            $"Reopened by: {reopenedBy} ({computer})\nWhen       : {when}\n";
+        string html = EmailTemplate.Render(
+            headline: "Ticket Reopened",
+            intro: "Your ticket was reopened by an administrator.",
+            id: id, title: title,
+            statusBlock: EmailTemplate.Badge("Complete") + " <span style=\"color:#94a3b8;font-size:18px;padding:0 6px;\">&rarr;</span> " + EmailTemplate.Badge(newStatus),
+            rows: EmailTemplate.Row("Reopened by", reopenedBy) + EmailTemplate.Row("Computer", computer) + EmailTemplate.Row("When", when),
+            description: null,
+            footer: "This is an automated notification from the Ticketing System.");
+        var recipients = new List<string> { requesterEmail, _settings.AdminEmail };
+        return SendAsync(recipients, $"[Ticket Reopened] {title} (#{id})", text, html);
     }
 
     private async Task<bool> SendAsync(IEnumerable<string> recipients, string subject, string textBody, string htmlBody)
