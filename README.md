@@ -1,1 +1,1 @@
-**Note:** I removed the `appsettings.json` and `firestore-service-account.json` files from the `tempAPI` project for security purposes. Please locate the folder containing these files in the company's Google Drive account (accessed through the company Gmail account).
+**Note:** I removed the `appsettings.json`, `portal-service-account` and `firestore-service-account.json` files from the `tempAPI` project for security purposes. Please locate the folder containing these files in the company's Google Drive account (accessed through the company Gmail account).
