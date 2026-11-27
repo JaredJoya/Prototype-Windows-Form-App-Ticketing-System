@@ -96,13 +96,14 @@ namespace tempProj
             }
         }
 
-        public async Task UpdateTicketAsync(string id, Ticket ticket)
+        public async Task UpdateTicketAsync(string id, Ticket ticket, string remarks = "")
         {
             var payload = new
             {
                 ticket.Title,
                 ticket.Description,
                 ticket.Status,
+                Remarks = remarks ?? "",
 
                 CreatedBy = Environment.UserName,
                 ComputerName = Environment.MachineName
@@ -116,12 +117,13 @@ namespace tempProj
             }
         }
 
-        public async Task DeleteTicketAsync(string id, string createdBy, string computerName)
+        public async Task DeleteTicketAsync(string id, string createdBy, string computerName, string reason = "")
         {
             string url = BaseUrl +
                 $"/tickets/{Uri.EscapeDataString(id)}" +
                 $"?createdBy={Uri.EscapeDataString(createdBy)}" +
-                $"&computerName={Uri.EscapeDataString(computerName)}";
+                $"&computerName={Uri.EscapeDataString(computerName)}" +
+                $"&reason={Uri.EscapeDataString(reason ?? "")}";
 
             var response = await httpClient.DeleteAsync(url);
             response.EnsureSuccessStatusCode();

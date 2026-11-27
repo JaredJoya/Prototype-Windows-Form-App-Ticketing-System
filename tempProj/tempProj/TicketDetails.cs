@@ -18,6 +18,7 @@ namespace tempProj
         private bool canModifyTicket;
         private readonly ApiService api = new ApiService();
         private int statusDropDownClosedAt;
+        private string loadedStatus = ""; // status when the ticket was opened / last saved
         public TicketDetails(string selectedTicketId, Func<Task> refreshParent)
         {
             InitializeComponent();
@@ -45,6 +46,7 @@ namespace tempProj
 
                 txtbox_title.Text = ticket.Title;
                 cmbStatus.SelectedItem = ticket.Status;
+                loadedStatus = ticket.Status ?? "";
                 rtxtbox_description.Text = ticket.Description;
                 UpdateStatusLine(ticket.Status);
 
@@ -156,6 +158,23 @@ namespace tempProj
                 }
             }
 
+            // Ask for the reason behind a status change. Reopening a Complete ticket requires one.
+            string remarks = "";
+            bool statusChanged = !string.Equals(loadedStatus.Trim(), tempStatus.Trim(), StringComparison.OrdinalIgnoreCase);
+            if (statusChanged)
+            {
+                bool reopening = string.Equals(loadedStatus.Trim(), "Complete", StringComparison.OrdinalIgnoreCase);
+                string asked = RemarksDialog.Ask(this,
+                    reopening ? "Reopen Ticket" : "Status Change",
+                    reopening
+                        ? "You are reopening a completed ticket (Complete \u2192 " + tempStatus + "). Please explain why it needs to be reopened."
+                        : "Status will change from " + loadedStatus + " to " + tempStatus + ". You can add a remark about this change.",
+                    reopening);
+                if (asked == null)
+                    return; // cancelled: nothing is saved
+                remarks = asked;
+            }
+
             btnUpdate.Enabled = false;
             lblReady.Text = "Saving...";
             try
@@ -171,7 +190,8 @@ namespace tempProj
                     ComputerName = Environment.MachineName
                 };
 
-                await api.UpdateTicketAsync(ticketId, updatedTicket);
+                await api.UpdateTicketAsync(ticketId, updatedTicket, remarks);
+                loadedStatus = tempStatus;
                 await refreshParent();
 
 
@@ -206,12 +226,17 @@ namespace tempProj
             if (result != DialogResult.Yes)
                 return;
 
+            string deleteReason = RemarksDialog.Ask(this, "Delete Ticket",
+                "Optionally tell us why ticket " + ticketId + " is being deleted. This is saved in the ticket history log.", false);
+            if (deleteReason == null)
+                return;
+
             btnDelete.Enabled = false;
 
 
             try
             {
-                await api.DeleteTicketAsync(ticketId, Environment.UserName, Environment.MachineName);
+                await api.DeleteTicketAsync(ticketId, Environment.UserName, Environment.MachineName, deleteReason);
                 MessageBox.Show($"Ticket {ticketId} was deleted successfully.");
 
                 this.DialogResult = DialogResult.OK;

@@ -57,6 +57,15 @@ Environment.SetEnvironmentVariable(
 
 var firestore = await FirestoreDb.CreateAsync("ticketing-system-9219d");
 Console.WriteLine("Firestore client ready.");
+
+// Ticket history log: primary copy in the ticketing project, mirror in the admin portal's project.
+var ticketLogs = new TicketLogService(
+    firestore,
+    TicketLogService.CreateMirror(builder.Configuration["Portal:ProjectId"] ?? "radyo-pilipino-branch-platform", app.Logger),
+    app.Logger);
+Console.WriteLine(ticketLogs.MirrorEnabled
+    ? "Ticket logs: saving to the ticketing project and mirroring to the admin portal project."
+    : "Ticket logs: saving to the ticketing project only (portal-service-account.json not found).");
 var philippinesTimeZone = TimeZoneInfo.FindSystemTimeZoneById(OperatingSystem.IsWindows() ? "Singapore Standard Time" : "Asia/Manila");
 
 app.MapGet("/firestore-test", async () =>
@@ -95,6 +104,13 @@ app.UseAuthorization();
 app.MapControllers();
 
 bool isAdminClient(HttpContext context) => adminList.Contains(context.Connection.RemoteIpAddress);
+
+string clientIp(HttpContext context)
+{
+    var ip = context.Connection.RemoteIpAddress;
+    if (ip == null) return "";
+    return ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4().ToString() : ip.ToString();
+}
 
 app.MapGet("/permissions", (HttpContext context) =>
 {
@@ -167,7 +183,7 @@ app.MapGet("/tickets", async () =>
 string FormatManila(DateTime utc) =>
     TimeZoneInfo.ConvertTimeFromUtc(utc, philippinesTimeZone).ToString("yyyy-MM-dd hh:mm tt", CultureInfo.InvariantCulture);
 
-app.MapPost("/tickets", async (CreateTicketRequest request) =>
+app.MapPost("/tickets", async (CreateTicketRequest request, HttpContext context) =>
 {
     // 1) Validate the requester's email before doing anything else.
     string? emailError = await EmailService.ValidateRecipientAsync(request.ReceiptEmail);
@@ -205,6 +221,21 @@ app.MapPost("/tickets", async (CreateTicketRequest request) =>
         ["UpdatedAt"] = now
     };
     await doc.SetAsync(data);
+
+    await ticketLogs.RecordAsync(new TicketLogEntry
+    {
+        TicketId = doc.Id,
+        TicketTitle = request.Title,
+        Action = TicketLogAction.Created,
+        OldStatus = "",
+        NewStatus = request.Status,
+        ChangedBy = request.CreatedBy,
+        ComputerName = request.ComputerName,
+        ClientIp = clientIp(context),
+        ByAdmin = isAdminClient(context),
+        TicketOwner = request.CreatedBy,
+        Note = "Ticket created"
+    });
 
     // 4) Receipt to the requester (background; a failure here is only logged).
     _ = Task.Run(() => emailService.SendReceiptToRequesterAsync(
@@ -297,12 +328,46 @@ app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request, HttpC
     };
 
     string oldStatus = existing.TryGetValue("Status", out var st) ? st?.ToString() ?? "" : "";
+    string oldTitle = existing.TryGetValue("Title", out var ot) ? ot?.ToString() ?? "" : "";
+    string oldDescription = existing.TryGetValue("Description", out var od) ? od?.ToString() ?? "" : "";
     string ticketTitle = request.Title;
     string requesterEmail = existing.TryGetValue("ReceiptEmail", out var em) ? em?.ToString() ?? "" : "";
 
     await doc.UpdateAsync(updates);
 
-    if (!string.Equals(oldStatus, request.Status, StringComparison.OrdinalIgnoreCase))
+    bool statusChanged = !string.Equals(oldStatus, request.Status, StringComparison.OrdinalIgnoreCase);
+    bool wasReopened = statusChanged &&
+        string.Equals(oldStatus?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(request.Status?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase);
+    bool detailsChanged = !string.Equals(oldTitle, request.Title, StringComparison.Ordinal) ||
+                          !string.Equals(oldDescription, request.Description, StringComparison.Ordinal);
+
+    // History log: who changed what, and when. A status change (or reopen) is the main entry;
+    // a pure title/description edit is logged as "edited".
+    if (statusChanged || detailsChanged)
+    {
+        await ticketLogs.RecordAsync(new TicketLogEntry
+        {
+            TicketId = id,
+            TicketTitle = request.Title,
+            Action = wasReopened ? TicketLogAction.Reopened
+                   : statusChanged ? TicketLogAction.StatusChanged
+                   : TicketLogAction.Edited,
+            OldStatus = oldStatus,
+            NewStatus = request.Status,
+            ChangedBy = request.CreatedBy,
+            ComputerName = request.ComputerName,
+            ClientIp = clientIp(context),
+            ByAdmin = isAdmin,
+            TicketOwner = owner,
+            Remarks = request.Remarks,
+            Note = statusChanged && detailsChanged ? "Status and details changed"
+                 : statusChanged ? ""
+                 : "Title or description edited"
+        });
+    }
+
+    if (statusChanged)
     {
         string when = FormatManila(DateTime.UtcNow);
         bool reopened = string.Equals(oldStatus?.Trim(), "Complete", StringComparison.OrdinalIgnoreCase) &&
@@ -324,7 +389,7 @@ app.MapPut("/tickets/{id}", async (string id, UpdateTicketRequest request, HttpC
     return Results.Ok(new { Id = id, Message = "Ticket updated succesfully" });
 });
 
-app.MapDelete("/tickets/{id}", async (string id, string createdBy, string computerName, HttpContext context) =>
+app.MapDelete("/tickets/{id}", async (string id, string createdBy, string computerName, string? reason, HttpContext context) =>
 {
     var doc = firestore.Collection("Tickets").Document(id);
     var snapshot = await doc.GetSnapshotAsync();
@@ -356,7 +421,34 @@ app.MapDelete("/tickets/{id}", async (string id, string createdBy, string comput
         }, statusCode: 403);
     }
 
+    string deletedTitle = existing.TryGetValue("Title", out var dt) ? dt?.ToString() ?? "" : "";
+    string deletedStatus = existing.TryGetValue("Status", out var ds) ? ds?.ToString() ?? "" : "";
+    string deletedRequesterEmail = existing.TryGetValue("ReceiptEmail", out var dre) ? dre?.ToString() ?? "" : "";
+
     await doc.DeleteAsync();
+
+    await ticketLogs.RecordAsync(new TicketLogEntry
+    {
+        TicketId = id,
+        TicketTitle = deletedTitle,
+        Action = TicketLogAction.Deleted,
+        OldStatus = deletedStatus,
+        NewStatus = "",
+        ChangedBy = createdBy,
+        ComputerName = computerName,
+        ClientIp = clientIp(context),
+        ByAdmin = isAdmin,
+        TicketOwner = owner,
+        Remarks = reason ?? "",
+        Note = "Ticket deleted"
+    });
+
+    // Tell the ticket owner (and the admin mailbox) that the ticket was deleted. Background; failures are only logged.
+    string deletedWhen = FormatManila(DateTime.UtcNow);
+    _ = Task.Run(() => emailService.SendTicketDeletedAsync(
+        id, deletedRequesterEmail, deletedTitle, deletedStatus, createdBy, computerName, deletedWhen,
+        TicketLogService.CleanRemarks(reason)));
+
     return Results.Ok(new 
     { 
         Id = id,
@@ -383,6 +475,7 @@ public class UpdateTicketRequest
     public string Status { get; set; } = "";
     public string CreatedBy { get; set; } = "";
     public string ComputerName { get; set; } = "";
+    public string Remarks { get; set; } = "";
 }
 
 
@@ -522,6 +615,64 @@ public class EmailService
         return SendAsync(recipients, $"[Ticket Reopened] {title} (#{id})", text, html);
     }
 
+    // Sent when a ticket is deleted. The owner gets a personal message that states the reason;
+    // the admin mailbox gets a separate record (unless it is the same address as the owner).
+    public async Task SendTicketDeletedAsync(string id, string requesterEmail, string title, string lastStatus,
+        string deletedBy, string computer, string when, string reason)
+    {
+        bool hasReason = !string.IsNullOrWhiteSpace(reason);
+        string rows = EmailTemplate.Row("Deleted by", deletedBy) + EmailTemplate.Row("Computer", computer) +
+                      EmailTemplate.Row("When", when);
+        string statusBlock = EmailTemplate.Badge(lastStatus) +
+            " <span style=\"color:#94a3b8;font-size:13px;padding:0 6px;\">last status</span>";
+
+        // 1) The ticket owner: "your ticket was deleted for <reason>".
+        if (!string.IsNullOrWhiteSpace(requesterEmail))
+        {
+            string ownerIntro = hasReason
+                ? $"Your ticket \"{title}\" was deleted for the following reason: {reason}"
+                : $"Your ticket \"{title}\" was deleted. No reason was given.";
+            string ownerText =
+                ownerIntro + "\n\n" +
+                $"Ticket ID  : {id}\nTitle      : {title}\nLast status: {lastStatus}\n" +
+                $"Deleted by : {deletedBy} ({computer})\nWhen       : {when}\n\n" +
+                "If you did not expect this, please contact IT and quote the ticket ID.\n";
+            string ownerHtml = EmailTemplate.Render(
+                headline: "Your Ticket Was Deleted",
+                intro: hasReason ? "Your ticket was deleted for the reason below." : "Your ticket was deleted. No reason was given.",
+                id: id, title: title,
+                statusBlock: statusBlock,
+                rows: rows,
+                description: hasReason ? reason : null,
+                footer: "If you did not expect this, please contact IT and quote the ticket ID. Keep this email as your record.",
+                descriptionLabel: "Reason for deletion");
+            await SendAsync(new List<string> { requesterEmail },
+                $"[Your Ticket Was Deleted] {title} (#{id})", ownerText, ownerHtml);
+        }
+
+        // 2) The admin mailbox: a record of the deletion (skipped when it is the owner's own address).
+        if (!string.Equals(requesterEmail?.Trim(), _settings.AdminEmail?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            string adminText =
+                "A ticket has been deleted.\n\n" +
+                $"Ticket ID  : {id}\nTitle      : {title}\nLast status: {lastStatus}\n" +
+                $"Deleted by : {deletedBy} ({computer})\nWhen       : {when}\n" +
+                $"Owner email: {requesterEmail}\n" +
+                (hasReason ? $"Reason     : {reason}\n" : "");
+            string adminHtml = EmailTemplate.Render(
+                headline: "Ticket Deleted",
+                intro: "This ticket was deleted and is no longer in the system.",
+                id: id, title: title,
+                statusBlock: statusBlock,
+                rows: rows + EmailTemplate.Row("Owner email", requesterEmail ?? ""),
+                description: hasReason ? reason : null,
+                footer: "This is an automated notification from the Ticketing System.",
+                descriptionLabel: "Reason for deletion");
+            await SendAsync(new List<string> { _settings.AdminEmail },
+                $"[Ticket Deleted] {title} (#{id})", adminText, adminHtml);
+        }
+    }
+
     private async Task<bool> SendAsync(IEnumerable<string> recipients, string subject, string textBody, string htmlBody)
     {
         try
@@ -596,10 +747,11 @@ public static class EmailTemplate
         $"<td style=\"padding:9px 0;color:#0f172a;font-size:14px;font-weight:600;border-bottom:1px solid #eef2f7;\">{E(value)}</td></tr>";
 
     public static string Render(string headline, string intro, string id, string title,
-        string statusBlock, string rows, string? description, string footer)
+        string statusBlock, string rows, string? description, string footer,
+        string descriptionLabel = "Description")
     {
         string descBlock = string.IsNullOrWhiteSpace(description) ? "" :
-            "<div style=\"margin-top:22px;\"><div style=\"font-size:12px;font-weight:700;letter-spacing:.08em;color:#64748b;text-transform:uppercase;margin-bottom:8px;\">Description</div>" +
+            "<div style=\"margin-top:22px;\"><div style=\"font-size:12px;font-weight:700;letter-spacing:.08em;color:#64748b;text-transform:uppercase;margin-bottom:8px;\">" + E(descriptionLabel) + "</div>" +
             "<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;color:#1e293b;font-size:14px;line-height:1.6;\">" +
             E(description).Replace("\r\n", "\n").Replace("\n", "<br>") + "</div></div>";
 
