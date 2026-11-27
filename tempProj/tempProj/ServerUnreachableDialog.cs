@@ -13,8 +13,9 @@ namespace tempProj
     }
 
     /// <summary>
-    /// Shown when the API server for the selected network doesn't answer.
-    /// Lets the user retry, pick another network, or exit.
+    /// Error dialog in the app's style. Used when the API server for the selected network doesn't
+    /// answer (retry / choose another network / exit), and when the server list can't be read
+    /// from Firebase (retry / exit).
     /// </summary>
     public class ServerUnreachableDialog : Form
     {
@@ -28,16 +29,67 @@ namespace tempProj
         private const int Pad = 28;
         private const int ContentWidth = 464;
 
+        private readonly string title;
+        private readonly string subtitle;
+        private readonly string cardCaption;
+        private readonly string cardValue;
+        private readonly string steps;
+        private readonly bool showChooseNetwork;
+
         /// <summary>What the user picked. Closing the window any other way counts as Exit.</summary>
         public ServerDialogChoice Choice { get; private set; }
 
+        /// <summary>The server for the chosen network didn't answer.</summary>
         public ServerUnreachableDialog(NetworkProfile network, string detectedSummary)
+            : this(
+                "Can't reach the ticket server",
+                "The app couldn't connect to the server for this network. This usually means " +
+                "the API isn't running yet, or this PC isn't on the network.",
+                "Trying to reach",
+                network.Name + "   \u2022   " + network.ServerHost + ":" + network.ServerPort,
+                "1.  Make sure the API is running on the server PC.\n" +
+                "2.  Check that this PC is connected to the network (cable or Wi-Fi).\n" +
+                "3.  Picked the wrong network? Click Choose network to switch.",
+                true,
+                detectedSummary)
         {
-            Choice = ServerDialogChoice.Exit;
-            BuildUi(network, detectedSummary);
         }
 
-        private void BuildUi(NetworkProfile network, string detectedSummary)
+        /// <summary>The server list couldn't be read from Firebase and there's no saved copy.</summary>
+        public static ServerUnreachableDialog ForHostList(string error, string detectedSummary)
+        {
+            string details = string.IsNullOrWhiteSpace(error)
+                ? ""
+                : "Details: " + (error.Length > 110 ? error.Substring(0, 110) + "..." : error) + "\n";
+
+            return new ServerUnreachableDialog(
+                "Can't load the server address",
+                "The app couldn't read the API server address from Firebase. This usually means " +
+                "this PC has no internet connection right now.",
+                "Reading from",
+                "Firebase   \u2022   API Hosting",
+                "1.  Check that this PC has an internet connection.\n" +
+                "2.  Click Retry. The address is remembered after the first successful load.\n" +
+                "3.  Still failing? Ask your administrator to check the \"API Hosting\" settings.",
+                false,
+                details + detectedSummary);
+        }
+
+        private ServerUnreachableDialog(string title, string subtitle, string cardCaption, string cardValue,
+            string steps, bool showChooseNetwork, string detectedSummary)
+        {
+            this.title = title;
+            this.subtitle = subtitle;
+            this.cardCaption = cardCaption;
+            this.cardValue = cardValue;
+            this.steps = steps;
+            this.showChooseNetwork = showChooseNetwork;
+
+            Choice = ServerDialogChoice.Exit;
+            BuildUi(detectedSummary);
+        }
+
+        private void BuildUi(string detectedSummary)
         {
             SuspendLayout();
 
@@ -65,7 +117,7 @@ namespace tempProj
 
             Controls.Add(new Label
             {
-                Text = "Can't reach the ticket server",
+                Text = title,
                 Font = new Font("Segoe UI", 15F, FontStyle.Bold),
                 ForeColor = Ink,
                 AutoSize = false,
@@ -76,8 +128,7 @@ namespace tempProj
 
             Controls.Add(new Label
             {
-                Text = "The app couldn't connect to the server for this network. This usually means " +
-                       "the API isn't running yet, or this PC isn't on the network.",
+                Text = subtitle,
                 ForeColor = Slate,
                 AutoSize = false,
                 Location = new Point(Pad, 76),
@@ -85,7 +136,7 @@ namespace tempProj
             });
 
             int y = 128;
-            Controls.Add(CreateServerCard(network, y));
+            Controls.Add(CreateServerCard(y));
             y += 56 + 12;
 
             Controls.Add(CreateNotePanel(y));
@@ -98,20 +149,27 @@ namespace tempProj
                 ForeColor = Slate,
                 AutoSize = false,
                 Location = new Point(Pad, y),
-                Size = new Size(ContentWidth, 34)
+                Size = new Size(ContentWidth, 48)
             });
-            y += 44;
+            y += 56;
 
             RoundedButton btnRetry = CreateButton("Retry", 120, true, ServerDialogChoice.Retry);
-            RoundedButton btnChoose = CreateButton("Choose network", 150, false, ServerDialogChoice.ChooseNetwork);
             RoundedButton btnExit = CreateButton("Exit", 100, false, ServerDialogChoice.Exit);
 
             btnRetry.Location = new Point(Pad + ContentWidth - 120, y);
-            btnChoose.Location = new Point(btnRetry.Left - 12 - 150, y);
-            btnExit.Location = new Point(btnChoose.Left - 12 - 100, y);
+            int left = btnRetry.Left;
+
+            if (showChooseNetwork)
+            {
+                RoundedButton btnChoose = CreateButton("Choose network", 150, false, ServerDialogChoice.ChooseNetwork);
+                btnChoose.Location = new Point(left - 12 - 150, y);
+                Controls.Add(btnChoose);
+                left = btnChoose.Left;
+            }
+
+            btnExit.Location = new Point(left - 12 - 100, y);
 
             Controls.Add(btnRetry);
-            Controls.Add(btnChoose);
             Controls.Add(btnExit);
             AcceptButton = btnRetry;
             CancelButton = btnExit;
@@ -146,7 +204,7 @@ namespace tempProj
             return button;
         }
 
-        private RoundedPanel CreateServerCard(NetworkProfile network, int y)
+        private RoundedPanel CreateServerCard(int y)
         {
             RoundedPanel card = new RoundedPanel
             {
@@ -159,7 +217,7 @@ namespace tempProj
 
             card.Controls.Add(new Label
             {
-                Text = "Trying to reach",
+                Text = cardCaption,
                 Font = new Font("Segoe UI", 8.5F),
                 ForeColor = Slate,
                 BackColor = Color.Transparent,
@@ -170,7 +228,7 @@ namespace tempProj
 
             card.Controls.Add(new Label
             {
-                Text = network.Name + "   \u2022   " + network.ServerHost + ":" + network.ServerPort,
+                Text = cardValue,
                 Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 ForeColor = Ink,
                 BackColor = Color.Transparent,
@@ -206,9 +264,7 @@ namespace tempProj
 
             panel.Controls.Add(new Label
             {
-                Text = "1.  Make sure the API is running on the server PC.\n" +
-                       "2.  Check that this PC is connected to the network (cable or Wi-Fi).\n" +
-                       "3.  Picked the wrong network? Click Choose network to switch.",
+                Text = steps,
                 ForeColor = SlateDark,
                 BackColor = Color.Transparent,
                 AutoSize = false,

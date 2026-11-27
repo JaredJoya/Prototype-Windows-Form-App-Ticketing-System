@@ -77,14 +77,41 @@ namespace tempProj
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            // Work out which network this PC is on automatically (default gateway / IP address, then
-            // which API server answers). The selection dialog only appears when that can't be decided.
-            NetworkProfile network = await NetworkDetector.DetectAsync();
+            // 1) Read the API server address(es) from Firebase ("API Hosting" collection). If Firebase
+            //    can't be reached the last saved copy is used; with neither, ask the user to retry.
+            HostDirectoryResult directory;
+            while (true)
+            {
+                directory = await HostDirectory.LoadAsync();
+                if (directory.Hosts.Count > 0)
+                {
+                    break;
+                }
+
+                using (ServerUnreachableDialog failed = ServerUnreachableDialog.ForHostList(
+                    directory.Error, NetworkDetector.DescribeLocalNetwork()))
+                {
+                    failed.ShowDialog();
+
+                    if (failed.Choice != ServerDialogChoice.Retry)
+                    {
+                        Application.Exit();
+                        return;
+                    }
+                }
+            }
+
+            IList<NetworkProfile> networks = directory.Hosts;
+
+            // 2) Pick the right server automatically (a single server is used as-is; otherwise by
+            //    gateway / IP address, then by which one answers). The selection dialog only appears
+            //    when that can't be decided.
+            NetworkProfile network = await NetworkDetector.DetectAsync(networks);
 
             if (network == null)
             {
                 using (NetworkSelectDialog dialog = new NetworkSelectDialog(
-                    NetworkDetector.Networks, NetworkDetector.DescribeLocalNetwork()))
+                    networks, NetworkDetector.DescribeLocalNetwork()))
                 {
                     if (dialog.ShowDialog() != DialogResult.OK)
                     {
@@ -114,7 +141,7 @@ namespace tempProj
                     if (unreachable.Choice == ServerDialogChoice.ChooseNetwork)
                     {
                         using (NetworkSelectDialog picker = new NetworkSelectDialog(
-                            NetworkDetector.Networks, NetworkDetector.DescribeLocalNetwork(), "Back"))
+                            networks, NetworkDetector.DescribeLocalNetwork(), "Back"))
                         {
                             if (picker.ShowDialog() == DialogResult.OK)
                             {

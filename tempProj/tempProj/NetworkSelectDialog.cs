@@ -2,17 +2,20 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Newtonsoft.Json.Linq;
 
 namespace tempProj
 {
     /// <summary>
-    /// One of the networks the app can run on, and the API server that belongs to it.
+    /// An API server the app can use, read from the Firebase "API Hosting" collection.
     /// </summary>
     public sealed class NetworkProfile
     {
@@ -26,7 +29,7 @@ namespace tempProj
 
         public string Name { get; private set; }
 
-        /// <summary>Start of the IPv4 addresses on this network, e.g. "192.168.1."</summary>
+        /// <summary>Start of the IPv4 addresses on the server's network, e.g. "192.168.1."</summary>
         public string Prefix { get; private set; }
 
         public string ServerHost { get; private set; }
@@ -36,26 +39,278 @@ namespace tempProj
         {
             get { return "http://" + ServerHost + ":" + ServerPort; }
         }
+
+        /// <summary>
+        /// Builds a profile from a server IP such as "192.168.1.50". The network prefix is the first
+        /// three parts of the address ("192.168.1."). Returns false when the IP isn't a valid IPv4 address.
+        /// </summary>
+        public static bool TryCreate(string name, string ip, int port, out NetworkProfile profile)
+        {
+            profile = null;
+            ip = (ip ?? "").Trim();
+
+            IPAddress address;
+            if (!IPAddress.TryParse(ip, out address) ||
+                address.AddressFamily != AddressFamily.InterNetwork ||
+                ip.Count(c => c == '.') != 3 ||
+                port < 1 || port > 65535)
+            {
+                return false;
+            }
+
+            string normalized = address.ToString();
+            string prefix = normalized.Substring(0, normalized.LastIndexOf('.') + 1);
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = "Network " + prefix + "x";
+            }
+
+            profile = new NetworkProfile(name.Trim(), prefix, normalized, port);
+            return true;
+        }
+    }
+
+    public sealed class HostDirectoryResult
+    {
+        public List<NetworkProfile> Hosts = new List<NetworkProfile>();
+
+        /// <summary>True when Firebase couldn't be read and the last saved copy is being used.</summary>
+        public bool FromSavedCopy;
+
+        /// <summary>Why Firebase couldn't be read (null when it worked).</summary>
+        public string Error;
     }
 
     /// <summary>
-    /// Works out which network this PC is connected to, so the user is not asked.
-    /// To add or change a network, edit the <see cref="Networks"/> list.
+    /// Reads the API server address(es) from Firebase instead of having them written into the app.
+    ///
+    /// Firestore collection "API Hosting", one document per server, with the field:
+    ///   IP Address   (string)   e.g. "192.168.1.50"           required
+    ///   Name         (string)   e.g. "Main office"             optional
+    ///   Port         (number)   defaults to 5075               optional
+    ///
+    /// The list is read over Firestore's REST endpoint, so the Firestore rules must allow reading
+    /// this collection without signing in (and should keep writing locked). The last good list is
+    /// saved on the PC so the app still starts when Firebase can't be reached.
+    /// </summary>
+    public static class HostDirectory
+    {
+        private const string ProjectId = "radyo-pilipino-branch-platform";
+        private const string CollectionName = "API Hosting";
+        private const int DefaultPort = 5075;
+
+        private static readonly HttpClient Http = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
+
+        private static string CachePath
+        {
+            get
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "RPMG Ticketing", "api-hosts.txt");
+            }
+        }
+
+        public static async Task<HostDirectoryResult> LoadAsync()
+        {
+            HostDirectoryResult result = new HostDirectoryResult();
+
+            try
+            {
+                List<NetworkProfile> hosts = await FetchFromFirebaseAsync();
+                if (hosts.Count == 0)
+                {
+                    throw new InvalidOperationException(
+                        "No server with a valid \"IP Address\" was found in \"" + CollectionName + "\".");
+                }
+
+                result.Hosts = hosts;
+                SaveCopy(hosts);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Error = ex.Message;
+            }
+
+            List<NetworkProfile> saved = LoadCopy();
+            if (saved.Count > 0)
+            {
+                result.Hosts = saved;
+                result.FromSavedCopy = true;
+            }
+
+            return result;
+        }
+
+        private static async Task<List<NetworkProfile>> FetchFromFirebaseAsync()
+        {
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
+            string url = "https://firestore.googleapis.com/v1/projects/" + ProjectId +
+                         "/databases/(default)/documents/" + Uri.EscapeDataString(CollectionName) + "?pageSize=100";
+
+            using (HttpResponseMessage response = await Http.GetAsync(url))
+            {
+                string body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string detail = null;
+                    try { detail = (string)JObject.Parse(body)["error"]["message"]; } catch { }
+
+                    if (response.StatusCode == HttpStatusCode.Forbidden)
+                    {
+                        throw new InvalidOperationException(
+                            "Firebase did not allow reading \"" + CollectionName + "\" (check the Firestore rules).");
+                    }
+
+                    throw new InvalidOperationException(
+                        "Firebase answered " + (int)response.StatusCode + (detail != null ? ": " + detail : "."));
+                }
+
+                List<NetworkProfile> hosts = new List<NetworkProfile>();
+                JArray documents = JObject.Parse(body)["documents"] as JArray;
+                if (documents == null)
+                {
+                    return hosts;
+                }
+
+                foreach (JToken document in documents)
+                {
+                    JObject fields = document["fields"] as JObject;
+                    if (fields == null)
+                    {
+                        continue;
+                    }
+
+                    string ip = ReadString(fields, "IP Address", "IP", "Host");
+                    string name = ReadString(fields, "Name", "Label");
+                    int port = ReadInt(fields, "Port") ?? DefaultPort;
+
+                    NetworkProfile profile;
+                    if (NetworkProfile.TryCreate(name, ip, port, out profile) &&
+                        !hosts.Any(h => h.ServerHost == profile.ServerHost && h.ServerPort == profile.ServerPort))
+                    {
+                        hosts.Add(profile);
+                    }
+                }
+
+                return hosts;
+            }
+        }
+
+        // Firestore REST wraps each value by type, e.g. {"stringValue": "192.168.1.50"}.
+        private static JObject FindField(JObject fields, params string[] names)
+        {
+            foreach (string wanted in names)
+            {
+                foreach (JProperty property in fields.Properties())
+                {
+                    if (Simplify(property.Name) == Simplify(wanted))
+                    {
+                        return property.Value as JObject;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string ReadString(JObject fields, params string[] names)
+        {
+            JObject field = FindField(fields, names);
+            return field == null ? null : (string)field["stringValue"];
+        }
+
+        private static int? ReadInt(JObject fields, params string[] names)
+        {
+            JObject field = FindField(fields, names);
+            if (field == null)
+            {
+                return null;
+            }
+
+            int value;
+            string text = (string)field["integerValue"] ?? (string)field["stringValue"];
+            return int.TryParse(text, out value) ? (int?)value : null;
+        }
+
+        private static string Simplify(string text)
+        {
+            return new string((text ?? "").Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+        }
+
+        private static void SaveCopy(List<NetworkProfile> hosts)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(CachePath));
+                File.WriteAllLines(CachePath, hosts.Select(h =>
+                    h.Name.Replace('\t', ' ') + "\t" + h.ServerHost + "\t" + h.ServerPort));
+            }
+            catch
+            {
+                // The saved copy is only a convenience; ignore problems writing it.
+            }
+        }
+
+        private static List<NetworkProfile> LoadCopy()
+        {
+            List<NetworkProfile> hosts = new List<NetworkProfile>();
+
+            try
+            {
+                if (!File.Exists(CachePath))
+                {
+                    return hosts;
+                }
+
+                foreach (string line in File.ReadAllLines(CachePath))
+                {
+                    string[] parts = line.Split('\t');
+                    int port;
+                    NetworkProfile profile;
+
+                    if (parts.Length == 3 && int.TryParse(parts[2], out port) &&
+                        NetworkProfile.TryCreate(parts[0], parts[1], port, out profile))
+                    {
+                        hosts.Add(profile);
+                    }
+                }
+            }
+            catch
+            {
+                hosts.Clear();
+            }
+
+            return hosts;
+        }
+    }
+
+    /// <summary>
+    /// Works out which API server this PC should use, so the user is not asked.
+    /// The list of servers comes from Firebase (see <see cref="HostDirectory"/>).
     /// </summary>
     public static class NetworkDetector
     {
-        public static readonly NetworkProfile[] Networks = new[]
-        {
-            new NetworkProfile("Network 1", "192.168.1.", "192.168.1.101", 5075),
-            new NetworkProfile("Network 2", "192.168.0.", "192.168.0.184", 5075),
-        };
-
         /// <summary>
-        /// Returns the network this PC is on, or null when it can't be decided
-        /// (in which case the user should be asked).
+        /// Returns the server to use, or null when it can't be decided (in which case the user
+        /// should be asked). A single server in the list is used straight away.
         /// </summary>
-        public static async Task<NetworkProfile> DetectAsync()
+        public static async Task<NetworkProfile> DetectAsync(IList<NetworkProfile> networks)
         {
+            if (networks == null || networks.Count == 0)
+            {
+                return null;
+            }
+
+            if (networks.Count == 1)
+            {
+                return networks[0];
+            }
+
             List<string> ips = new List<string>();
             List<string> gateways = new List<string>();
             CollectAddresses(ips, gateways);
@@ -65,7 +320,7 @@ namespace tempProj
             List<NetworkProfile> candidates = null;
             foreach (List<string> addresses in new[] { gateways, ips })
             {
-                List<NetworkProfile> matches = Networks
+                List<NetworkProfile> matches = networks
                     .Where(n => addresses.Any(a => a.StartsWith(n.Prefix, StringComparison.Ordinal)))
                     .ToList();
 
@@ -84,7 +339,7 @@ namespace tempProj
             // Several (or no) matches: see which of the candidate servers actually answers.
             if (candidates == null)
             {
-                candidates = Networks.ToList();
+                candidates = networks.ToList();
             }
 
             bool[] reachable = await Task.WhenAll(candidates.Select(n => IsReachableAsync(n, 1500)));
