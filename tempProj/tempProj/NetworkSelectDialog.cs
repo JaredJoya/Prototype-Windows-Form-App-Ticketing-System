@@ -29,7 +29,7 @@ namespace tempProj
 
         public string Name { get; private set; }
 
-        /// <summary>Start of the IPv4 addresses on the server's network, e.g. "192.168.1."</summary>
+
         public string Prefix { get; private set; }
 
         public string ServerHost { get; private set; }
@@ -40,10 +40,7 @@ namespace tempProj
             get { return "http://" + ServerHost + ":" + ServerPort; }
         }
 
-        /// <summary>
-        /// Builds a profile from a server IP such as "192.168.1.50". The network prefix is the first
-        /// three parts of the address ("192.168.1."). Returns false when the IP isn't a valid IPv4 address.
-        /// </summary>
+
         public static bool TryCreate(string name, string ip, int port, out NetworkProfile profile)
         {
             profile = null;
@@ -82,18 +79,7 @@ namespace tempProj
         public string Error;
     }
 
-    /// <summary>
-    /// Reads the API server address(es) from Firebase instead of having them written into the app.
-    ///
-    /// Firestore collection "API Hosting", one document per server, with the field:
-    ///   IP Address   (string)   e.g. "192.168.1.50"           required
-    ///   Name         (string)   e.g. "Main office"             optional
-    ///   Port         (number)   defaults to 5075               optional
-    ///
-    /// The list is read over Firestore's REST endpoint, so the Firestore rules must allow reading
-    /// this collection without signing in (and should keep writing locked). The last good list is
-    /// saved on the PC so the app still starts when Firebase can't be reached.
-    /// </summary>
+
     public static class HostDirectory
     {
         private const string ProjectId = "radyo-pilipino-branch-platform";
@@ -201,7 +187,7 @@ namespace tempProj
             }
         }
 
-        // Firestore REST wraps each value by type, e.g. {"stringValue": "192.168.1.50"}.
+
         private static JObject FindField(JObject fields, params string[] names)
         {
             foreach (string wanted in names)
@@ -252,7 +238,7 @@ namespace tempProj
             }
             catch
             {
-                // The saved copy is only a convenience; ignore problems writing it.
+
             }
         }
 
@@ -289,16 +275,10 @@ namespace tempProj
         }
     }
 
-    /// <summary>
-    /// Works out which API server this PC should use, so the user is not asked.
-    /// The list of servers comes from Firebase (see <see cref="HostDirectory"/>).
-    /// </summary>
+
     public static class NetworkDetector
     {
-        /// <summary>
-        /// Returns the server to use, or null when it can't be decided (in which case the user
-        /// should be asked). A single server in the list is used straight away.
-        /// </summary>
+ 
         public static async Task<NetworkProfile> DetectAsync(IList<NetworkProfile> networks)
         {
             if (networks == null || networks.Count == 0)
@@ -315,8 +295,7 @@ namespace tempProj
             List<string> gateways = new List<string>();
             CollectAddresses(ips, gateways);
 
-            // 1) The default gateway is the most reliable hint (virtual adapters such as VMware or
-            //    Hyper-V have 192.168.x addresses too, but normally no gateway). 2) Then the PC's own IPs.
+
             List<NetworkProfile> candidates = null;
             foreach (List<string> addresses in new[] { gateways, ips })
             {
@@ -336,7 +315,7 @@ namespace tempProj
                 }
             }
 
-            // Several (or no) matches: see which of the candidate servers actually answers.
+
             if (candidates == null)
             {
                 candidates = networks.ToList();
@@ -348,7 +327,7 @@ namespace tempProj
             return online.Count == 1 ? online[0] : null;
         }
 
-        /// <summary>Short description of this PC's IPv4 address and gateway, shown in the dialog.</summary>
+
         public static string DescribeLocalNetwork()
         {
             List<string> ips = new List<string>();
@@ -432,9 +411,7 @@ namespace tempProj
         }
     }
 
-    /// <summary>
-    /// Fallback dialog shown only when the network can't be detected automatically.
-    /// </summary>
+
     public class NetworkSelectDialog : Form
     {
         private static readonly Color Ink = Color.FromArgb(15, 23, 42);
@@ -453,7 +430,7 @@ namespace tempProj
         private Label lblError;
         private int selectedIndex = -1;
 
-        /// <summary>The network the user picked (valid when the dialog returns OK).</summary>
+
         public NetworkProfile SelectedNetwork { get; private set; }
 
         private readonly string cancelText;
@@ -726,7 +703,7 @@ namespace tempProj
             DialogResult = DialogResult.OK;
         }
 
-        // Up / Down arrow keys move the selection.
+
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if ((keyData == Keys.Down || keyData == Keys.Up) && networks.Count > 0)
