@@ -446,11 +446,16 @@ namespace tempProj
 
         private const int Pad = 28;
         private const int ContentWidth = 464;
+        private const int CardHeight = 68;
+        private const int CardStep = 76;       // card height + gap
+        private const int NoteLineHeight = 19;
+        private const int MaxListedInNote = 4;  // servers named in the "how to check" box
 
         private readonly IList<NetworkProfile> networks;
         private readonly List<RoundedPanel> cards = new List<RoundedPanel>();
         private readonly List<Label> dots = new List<Label>();
         private Label lblError;
+        private Panel listHost;
         private int selectedIndex = -1;
 
         /// <summary>The network the user picked (valid when the dialog returns OK).</summary>
@@ -502,18 +507,40 @@ namespace tempProj
                 Size = new Size(ContentWidth, 44)
             });
 
-            int y = 116;
+            // Height of the "how to check your network" box: it grows with the number of lines.
+            int noteLines = 3 + Math.Min(networks.Count, MaxListedInNote) +
+                            (networks.Count > MaxListedInNote ? 1 : 0);
+            int noteHeight = 52 + noteLines * NoteLineHeight + 14;
+
+            // The server list scrolls when it would make the dialog taller than the screen, so the
+            // buttons are never pushed off the bottom of the display.
+            int listTop = 116;
+            int below = 16 + noteHeight + 12 + 38 + 26 + 42 + Pad; // note, summary, error, buttons
+            int maxList = Math.Max(CardStep * 2 - 8, MaxClientHeight() - listTop - below);
+            int fullList = Math.Max(networks.Count, 1) * CardStep - 8;
+            int listHeight = Math.Min(fullList, maxList);
+            bool scrolls = fullList > listHeight;
+            int cardWidth = ContentWidth - (scrolls ? SystemInformation.VerticalScrollBarWidth : 0);
+
+            listHost = new Panel
+            {
+                Location = new Point(Pad, listTop),
+                Size = new Size(ContentWidth, listHeight),
+                AutoScroll = scrolls,
+                BackColor = Color.White
+            };
+            Controls.Add(listHost);
+
             for (int i = 0; i < networks.Count; i++)
             {
-                RoundedPanel card = CreateCard(networks[i], i, y);
+                RoundedPanel card = CreateCard(networks[i], i, i * CardStep, cardWidth);
                 cards.Add(card);
-                Controls.Add(card);
-                y += 76;
+                listHost.Controls.Add(card);
             }
 
-            y += 8;
-            Controls.Add(CreateNotePanel(y));
-            y += 176 + 12;
+            int y = listTop + listHeight + 16;
+            Controls.Add(CreateNotePanel(y, noteHeight));
+            y += noteHeight + 12;
 
             Controls.Add(new Label
             {
@@ -581,12 +608,12 @@ namespace tempProj
             ResumeLayout(false);
         }
 
-        private RoundedPanel CreateCard(NetworkProfile network, int index, int y)
+        private RoundedPanel CreateCard(NetworkProfile network, int index, int y, int width)
         {
             RoundedPanel card = new RoundedPanel
             {
-                Location = new Point(Pad, y),
-                Size = new Size(ContentWidth, 68),
+                Location = new Point(0, y),
+                Size = new Size(width, CardHeight),
                 CornerRadius = 10,
                 BackColor = Color.White,
                 BorderColor = LineColor,
@@ -611,8 +638,9 @@ namespace tempProj
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
                 AutoSize = false,
+                AutoEllipsis = true,
                 Location = new Point(52, 13),
-                Size = new Size(396, 22)
+                Size = new Size(width - 68, 22)
             };
 
             Label detail = new Label
@@ -622,8 +650,9 @@ namespace tempProj
                 BackColor = Color.Transparent,
                 Cursor = Cursors.Hand,
                 AutoSize = false,
+                AutoEllipsis = true,
                 Location = new Point(52, 37),
-                Size = new Size(396, 20)
+                Size = new Size(width - 68, 20)
             };
 
             card.Controls.Add(dot);
@@ -639,12 +668,12 @@ namespace tempProj
             return card;
         }
 
-        private RoundedPanel CreateNotePanel(int y)
+        private RoundedPanel CreateNotePanel(int y, int height)
         {
             RoundedPanel panel = new RoundedPanel
             {
                 Location = new Point(Pad, y),
-                Size = new Size(ContentWidth, 176),
+                Size = new Size(ContentWidth, height),
                 CornerRadius = 10,
                 BackColor = Color.FromArgb(248, 250, 252),
                 BorderColor = Color.FromArgb(226, 232, 240)
@@ -665,9 +694,17 @@ namespace tempProj
                 "1.  Press Windows + R, type  cmd  and press Enter.\n" +
                 "2.  In the Command Prompt, type  ipconfig  and press Enter.\n" +
                 "3.  Under your active adapter, look at Default Gateway (or IPv4 Address):\n";
+            int listed = 0;
             foreach (NetworkProfile n in networks)
             {
+                if (listed == MaxListedInNote)
+                {
+                    body += "          \u2022  ...and " + (networks.Count - listed) + " more (see the list above)\n";
+                    break;
+                }
+
                 body += "          \u2022  " + n.Prefix + "x   \u2192   choose " + n.Name + "\n";
+                listed++;
             }
 
             panel.Controls.Add(new Label
@@ -677,7 +714,7 @@ namespace tempProj
                 BackColor = Color.Transparent,
                 AutoSize = false,
                 Location = new Point(16, 44),
-                Size = new Size(ContentWidth - 32, 120)
+                Size = new Size(ContentWidth - 32, height - 56)
             });
 
             return panel;
@@ -712,6 +749,47 @@ namespace tempProj
                 cards[i].BackColor = on ? AccentSoft : Color.White;
                 dots[i].Invalidate();
             }
+
+            // Keep the chosen server visible when the list is scrolling.
+            if (listHost != null && index >= 0 && index < cards.Count)
+            {
+                listHost.ScrollControlIntoView(cards[index]);
+            }
+        }
+
+        // The tallest the dialog's client area may be, so it always fits on the screen
+        // (in the same design units the rest of the layout uses).
+        private int MaxClientHeight()
+        {
+            Rectangle area = Screen.FromPoint(Cursor.Position).WorkingArea;
+            float scale = 1f;
+            try
+            {
+                using (Graphics g = CreateGraphics())
+                {
+                    scale = g.DpiY / 96f;
+                }
+            }
+            catch
+            {
+                // Fall back to 100% scaling.
+            }
+
+            // Leave room for the title bar, the window border and some breathing space.
+            return (int)((area.Height - 90) / Math.Max(scale, 1f));
+        }
+
+        // Mouse wheel scrolls the server list when it has a scroll bar.
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            if (listHost != null && listHost.AutoScroll)
+            {
+                int top = -listHost.AutoScrollPosition.Y - e.Delta;
+                listHost.AutoScrollPosition = new Point(0, Math.Max(0, top));
+                return;
+            }
+
+            base.OnMouseWheel(e);
         }
 
         private void btnContinue_Click(object sender, EventArgs e)
